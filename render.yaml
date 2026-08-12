@@ -10,13 +10,3 @@ services:
       - key: TZ
         value: Asia/Jakarta
     dockerfilePath: ./backend/Dockerfile
-  
-  - type: cron
-    name: stockpulse-refresh
-    runtime: docker
-    plan: free
-    schedule: "0 10 * * 1-5"
-    dockerfilePath: ./backend/Dockerfile
-    envVars:
-      - key: JOB_REFRESH
-        value: "1"

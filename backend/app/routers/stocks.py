@@ -15,6 +15,44 @@ def health():
     return {"status": "ok"}
 
 
+_building = False
+
+
+@router.get("/warm")
+def warm():
+    """Keep-alive endpoint (dipanggil UptimeRobot/monitor tiap 5 menit).
+
+    Render free tier akan mem-buff (sleep) service yang idle >15 menit.
+    Endpoint ini juga memastikan cache saham sudah hangat sebelum user datang.
+    """
+    global _building
+    from app.services.cache import get
+    cached = get("screen:all")
+    if cached is not None:
+        return {"warmed": True, "cached": True, "stocks": len(cached)}
+
+    if _building:
+        return {"warmed": True, "cached": False, "building": True, "note": "already building"}
+
+    _building = True
+    import threading
+    t = threading.Thread(target=_warm_async, daemon=True)
+    t.start()
+    return {"warmed": True, "cached": False, "building": True}
+
+
+def _warm_async():
+    global _building
+    from app.services.cache import set as cache_set
+    try:
+        results = runner.build_all()
+        cache_set("screen:all", results, ttl=60 * 60 * 6)
+    except Exception:
+        pass
+    finally:
+        _building = False
+
+
 @router.get("/tickers")
 def tickers():
     return {"total": len(ALL_TICKERS), "tickers": ALL_TICKERS, "sectors": SECTOR_GROUPS}

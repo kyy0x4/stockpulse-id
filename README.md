@@ -52,11 +52,11 @@ npm run dev
 
 1. Push repo ke GitHub.
 2. Masuk [render.com](https://render.com) → **New → Blueprint** → pilih repo.
-3. Render membaca `render.yaml` otomatis dan membuat:
-   - **StockPulse API** (web service, health check `/api/health`)
-   - **StockPulse Refresh** (cron Senin–Jumat 17:00 WIB, pre-warm data)
+3. Render membaca `render.yaml` otomatis dan membuat **StockPulse API** (web service free, health check `/api/health`).
 4. Tunggu build selesai, dapat URL seperti `https://stockpulse-api.onrender.com`.
 5. Tes: buka `https://stockpulse-api.onrender.com/api/health`.
+
+> **Catatan cron:** Render cron tidak punya free plan (min `starter`). Sebagai gantinya, API punya endpoint `/api/warm` yang memanaskan cache secara asinkron. Pasang **UptimeRobot** (gratis) untuk ping `https://stockpulse-api.onrender.com/api/warm` tiap 5 menit — ini mencegah service free tier tertidur (idle suspend >15 menit) sekaligus memastikan data selalu hangat saat user datang.
 
 ### 2. Frontend → Netlify (free tier)
 
@@ -67,10 +67,12 @@ npm run dev
 
 > Atau pakai Vercel: import repo, set `VITE_API_BASE`, deploy.
 
-### Catatan free tier Render
+### UptimeRobot (gratis) — jaga API tetap hangat
 
-- 750 jam/bulan — cukup untuk 1 service non-stop. Cron free menambah pemakaian sedikit, jadi ada kemungkinan kehabisan jam di akhir bulan (bisa di-pause manual atau upgrade $7/bulan buat selalu nyala).
-- Cache di memory — tiap restart Render akan re-fetch data (sekali ±30 detik, lalu cepat).
+1. Daftar [uptimerobot.com](https://uptimerobot.com) (free: 50 monitor).
+2. **Add New Monitor** → type **HTTP(s)** → URL `https://stockpulse-api.onrender.com/api/warm`.
+3. Interval `5 menit`.
+4. Selesai. API gak pernah tidur, cache selalu fresh.
 
 ## Design System
 
@@ -79,10 +81,11 @@ Gaya **Dark Mode (OLED)** + aksen hijau finansial, font **Fira Code/Fira Sans**,
 ## API
 
 ```
-GET /api/health               → status
-GET /api/tickers              → daftar ticker + sektor
-GET /api/stocks?filter=...    → screener (sector, signal, min_score, q, limit)
-GET /api/stocks/BBCA          → detail + history 90 hari + analisa
+GET /api/health              → status
+GET /api/warm                → keep-alive + pre-warm cache (untuk monitor gratis)
+GET /api/tickers             → daftar ticker + sektor
+GET /api/stocks?filter=...   → screener (sector, signal, min_score, q, limit)
+GET /api/stocks/BBCA         → detail + history 90 hari + analisa
 ```
 
 Docs interaktif: `http://localhost:8000/docs`
