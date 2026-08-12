@@ -2,6 +2,34 @@ import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import ScreenerFilters from '../components/screener/ScreenerFilters'
 import ScreenerTable from '../components/screener/ScreenerTable'
+import { Download } from 'lucide-react'
+
+function exportCSV(stocks) {
+  const header = ['Ticker', 'Nama', 'Sektor', 'Harga', 'Change %', 'Change Pts', 'Signal', 'Skor', 'RSI', 'Trend', 'PER', 'ROE', 'Growth']
+  const rows = stocks.map((s) => [
+    s.ticker,
+    `"${(s.name || '').replace(/"/g, '""')}"`,
+    s.sector,
+    s.price,
+    s.change,
+    s.change != null ? (s.price != null ? (s.price * s.change / 100).toFixed(2) : '') : '',
+    s.signal,
+    s.composite,
+    s.technical.rsi ?? '',
+    `"${s.technical.trend || ''}"`,
+    s.fundamental.per ?? '',
+    s.fundamental.roe ?? '',
+    s.fundamental.growth != null ? `${s.fundamental.growth}%` : '',
+  ])
+  const csv = [header, ...rows].map((r) => r.join(',')).join('\n')
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `stockpulse-screener-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function ScreenerPage({ stocks, onSelectStock, onToggleFav, favorites }) {
   const [filters, setFilters] = useState({ query: '', sector: 'Semua', minScore: 0, signal: 'Semua' })
@@ -35,6 +63,15 @@ export default function ScreenerPage({ stocks, onSelectStock, onToggleFav, favor
         >
           Saring semua saham Indonesia berdasarkan kriteria fundamental & teknikal
         </motion.p>
+        <div className="mt-4">
+          <button
+            onClick={() => exportCSV(filtered)}
+            disabled={!filtered.length}
+            className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-card px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink hover:border-ink/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download size={15} /> Export CSV ({filtered.length})
+          </button>
+        </div>
       </div>
 
       <ScreenerFilters onApply={setFilters} />

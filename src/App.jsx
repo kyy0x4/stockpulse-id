@@ -10,6 +10,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ScreenerPage = lazy(() => import('./pages/ScreenerPage'))
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'))
 const MarketPage = lazy(() => import('./pages/MarketPage'))
+const NewsPage = lazy(() => import('./pages/NewsPage'))
 
 const FAV_KEY = 'stockpulse-favorites'
 
@@ -127,6 +128,7 @@ export default function App() {
                   />
                 )}
                 {page === 'market' && <MarketPage stocks={data} />}
+                {page === 'news' && <NewsPage />}
               </Suspense>
             </PageWrapper>
           </AnimatePresence>

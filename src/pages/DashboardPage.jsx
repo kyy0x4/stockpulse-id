@@ -100,7 +100,7 @@ export default function DashboardPage({ stocks, loading, onSelectStock, onToggle
               const ranked = Object.entries(bySector)
                 .map(([name, v]) => ({ name, avg: Math.round(v.sum / v.count), count: v.count }))
                 .sort((a, b) => b.avg - a.avg)
-                .slice(0, 3)
+                .slice(0, 5)
               return ranked.map((r, i) => (
                 <div key={r.name} className="flex items-center gap-2 py-1.5">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-up/10 border border-up/15 font-mono text-[10px] text-up">

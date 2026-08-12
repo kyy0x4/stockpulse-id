@@ -7,6 +7,7 @@ from app.services.market import fetch_info, fetch_ihsg
 from app.data.tickers import ALL_TICKERS, SECTOR_GROUPS
 from app.services.cache import get, set as cache_set
 from app.services.jsonutil import sanitize
+from app.services.news import fetch_news
 import app.services.analysis_runner as runner
 
 router = APIRouter(prefix="/api", tags=["stocks"])
@@ -112,3 +113,15 @@ def stock_detail(ticker: str):
         return sanitize(runner.get_stock_detail(code))
     except Exception as exc:
         raise HTTPException(500, f"Gagal mengambil data {code}: {exc}")
+
+
+@router.get("/news")
+def news(category: str = "market", limit: int = Query(20, le=50)):
+    cached = get(f"news:{category}")
+    if cached is None:
+        try:
+            cached = sanitize(fetch_news(category=category, limit=limit))
+        except Exception as exc:
+            raise HTTPException(502, f"Gagal mengambil berita: {exc}")
+        cache_set(f"news:{category}", cached, ttl=300)
+    return JSONResponse({"category": category, "total": len(cached), "items": cached}, headers={"Cache-Control": "public, max-age=300, s-maxage=300"})

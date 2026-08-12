@@ -130,12 +130,14 @@ def fetch_info(ticker):
     website = _clean(info.get("website"))
     domain = domain_from_website(website)
     override = LOGO_OVERRIDES.get(ticker)
+    icon_horse = f"https://icon.horse/icon/{domain}" if domain else None
+    google_fav = f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None
     return {
         "name": info.get("longName") or info.get("shortName") or ticker,
         "domain": domain,
         "website": website,
-        "logo_url": override or (f"https://cdn.tickerlogos.com/{domain}" if domain else None),
-        "logo_fallback": f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None,
+        "logo_url": override or icon_horse,
+        "logo_fallback": google_fav,
         "sector_raw": sector,
         "sector": SECTOR_GROUP.get(sector, sector or "Lainnya"),
         "currency": info.get("currency") or "IDR",

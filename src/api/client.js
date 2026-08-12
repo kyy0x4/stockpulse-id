@@ -21,6 +21,9 @@ export const api = {
   ihsg() {
     return get('/market/ihsg')
   },
+  news(category = 'market', limit = 20) {
+    return get(`/news?category=${category}&limit=${limit}`)
+  },
   tickers() {
     return get('/tickers')
   },

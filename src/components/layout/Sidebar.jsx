@@ -6,6 +6,7 @@ import {
   Activity,
   Settings,
   CandlestickChart,
+  Newspaper,
   X,
 } from 'lucide-react'
 
@@ -14,6 +15,7 @@ const nav = [
   { id: 'screener', label: 'Screener', icon: SlidersHorizontal },
   { id: 'watchlist', label: 'Watchlist', icon: Star },
   { id: 'market', label: 'Pasar', icon: Activity },
+  { id: 'news', label: 'News', icon: Newspaper },
 ]
 
 export default function Sidebar({ active, onNavigate, open = false, onClose }) {

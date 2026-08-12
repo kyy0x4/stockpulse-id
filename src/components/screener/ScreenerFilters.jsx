@@ -1,17 +1,31 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Card from '../ui/Card'
-import { SlidersHorizontal, RotateCcw } from 'lucide-react'
+import { SlidersHorizontal, RotateCcw, BookmarkPlus, Bookmark, Trash2 } from 'lucide-react'
 
 const sectors = ['Semua', 'Perbankan', 'Konsumen', 'Tambang', 'Energi', 'Telekomunikasi', 'Infrastruktur', 'Industri', 'Teknologi']
+
+const PRESETS_KEY = 'stockpulse-screener-presets'
+
+function loadPresets() {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY)
+    const arr = raw ? JSON.parse(raw) : []
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return []
+  }
+}
 
 export default function ScreenerFilters({ onApply }) {
   const [query, setQuery] = useState('')
   const [sector, setSector] = useState('Semua')
   const [minScore, setMinScore] = useState(0)
   const [signal, setSignal] = useState('Semua')
+  const [name, setName] = useState('')
+  const [presets, setPresets] = useState(loadPresets)
 
-  const apply = () => onApply({ query, sector, minScore, signal })
+  const apply = (extra = {}) => onApply({ query, sector, minScore, signal, ...extra })
 
   const reset = () => {
     setQuery('')
@@ -19,6 +33,28 @@ export default function ScreenerFilters({ onApply }) {
     setMinScore(0)
     setSignal('Semua')
     onApply({ query: '', sector: 'Semua', minScore: 0, signal: 'Semua' })
+  }
+
+  const savePreset = () => {
+    const label = (name || `${sector} · Skor≥${minScore}`).trim()
+    const entry = { id: `${Date.now()}`, label, sector, minScore, signal }
+    const next = [entry, ...presets.filter((p) => !(p.sector === sector && p.minScore === minScore && p.signal === signal))]
+    setPresets(next)
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(next))
+    setName('')
+  }
+
+  const loadPreset = (p) => {
+    setSector(p.sector)
+    setMinScore(p.minScore)
+    setSignal(p.signal)
+    onApply({ query: '', sector: p.sector, minScore: p.minScore, signal: p.signal })
+  }
+
+  const deletePreset = (id) => {
+    const next = presets.filter((p) => p.id !== id)
+    setPresets(next)
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(next))
   }
 
   return (
@@ -90,10 +126,38 @@ export default function ScreenerFilters({ onApply }) {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-end">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nama build (cth: Bank murah)"
+            className="w-48 rounded-xl bg-elevated border border-line-strong px-3.5 py-1.5 text-xs placeholder:text-ink-faint focus:outline-none focus:border-up/40"
+          />
+          <button
+            onClick={savePreset}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-up/10 border border-up/25 px-3 py-1.5 text-xs font-semibold text-up hover:bg-up/20 transition-colors cursor-pointer"
+          >
+            <BookmarkPlus size={13} /> Simpan Build
+          </button>
+
+          {presets.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap ml-2 border-l border-line pl-3">
+              {presets.map((p) => (
+                <span key={p.id} className="inline-flex items-center gap-1 rounded-lg border border-line-strong bg-card px-2.5 py-1.5 text-xs text-ink-soft">
+                  <button onClick={() => loadPreset(p)} className="inline-flex items-center gap-1 hover:text-ink transition-colors cursor-pointer">
+                    <Bookmark size={12} className="text-up" /> {p.label}
+                  </button>
+                  <button onClick={() => deletePreset(p.id)} className="text-ink-faint hover:text-down transition-colors cursor-pointer" aria-label="Hapus build">
+                    <Trash2 size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:text-ink transition-colors cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:text-ink transition-colors cursor-pointer"
           >
             <RotateCcw size={13} /> Reset Filter
           </button>
