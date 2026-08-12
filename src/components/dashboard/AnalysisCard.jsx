@@ -27,6 +27,13 @@ export default function AnalysisCard({ stock }) {
   const f = stock.fundamental
   const t = stock.technical
 
+  const num = (v) => (v == null || v === '—' ? null : parseFloat(String(v).replace(/[^\d.-]/g, '')))
+  const e21 = num(t.ema21), e34 = num(t.ema34), e55 = num(t.ema55)
+  const w21 = num(t.ema21w), w34 = num(t.ema34w), w55 = num(t.ema55w)
+  const emaStackGood = e21 != null && e21 > e34 && e34 > e55
+  const emaWeekGood = w21 != null && w21 > w34 && w34 > w55
+  const crossLabel = t.ema_cross === 'Golden Cross' ? 'Bull Cross' : t.ema_cross
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 40 }}
@@ -66,10 +73,12 @@ export default function AnalysisCard({ stock }) {
             <Metric label="FCF Yield" value={f.fcf_yield != null ? `${f.fcf_yield}%` : '—'} good={f.fcf_yield > 3} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-ink-faint mb-2 font-medium">Teknikal</p>
+            <p className="text-[10px] uppercase tracking-widest text-ink-faint mb-2 font-medium">Teknikal (Daily + Weekly)</p>
+            <Metric label="Tren (EMA)" value={t.trend} good={t.trend === 'Uptrend'} />
+            <Metric label="EMA Cross" value={crossLabel || '—'} good={t.ema_cross === 'Golden Cross' || t.ema_cross === 'Bullish'} />
+            <Metric label="EMA Daily 21/34/55" value={e21 != null ? `${e21} / ${e34} / ${e55}` : '—'} good={emaStackGood} />
+            <Metric label="EMA Weekly 21/34/55" value={w21 != null ? `${w21} / ${w34} / ${w55}` : '—'} good={emaWeekGood} />
             <Metric label="Struktur" value={t.structure || '—'} good={t.structure === 'Uptrend'} />
-            <Metric label="EMA 21/34/55" value={t.ema21 ? `${t.ema21} / ${t.ema34} / ${t.ema55}` : '—'} good={t.ema21 > t.ema34 && t.ema34 > t.ema55} />
-            <Metric label="BOS / CHoCH" value={t.bos && t.bos !== 'N/A' ? `${t.bos} · ${t.choch === 'N/A' ? '—' : t.choch}` : '—'} good={t.bos === 'Bullish BOS' || t.choch === 'Bullish CHoCH'} />
             <Metric label="RSI (14)" value={t.rsi} good={t.rsi > 40 && t.rsi < 70} />
             <Metric label="MACD" value={t.macd} good={t.macd === 'Bullish'} />
             <Metric label="Volume" value={`${t.vol}x`} good={t.vol >= 1} />

@@ -80,7 +80,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
         <div className="p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <StockLogo ticker={stock.ticker} name={name} size="lg" />
+              <StockLogo ticker={stock.ticker} name={name} size="lg" logoUrl={stock.logoUrl} />
               <div>
                 <div className="flex items-center gap-2.5">
                   <h2 className="text-xl font-bold tracking-tight">{stock.ticker}</h2>
@@ -157,9 +157,24 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                 <span className="ml-auto font-mono text-xs text-ink-faint">Skor: {t.score ?? '—'}/100</span>
               </div>
               <div className="space-y-2">
+                <MetricRow label="Tren (EMA D+W)" value={t.trend} good={t.trend === 'Uptrend'} />
+                <MetricRow
+                  label="EMA Cross"
+                  value={t.ema_cross === 'Golden Cross' ? 'Bull Cross' : t.ema_cross}
+                  good={t.ema_cross === 'Golden Cross' || t.ema_cross === 'Bullish'}
+                />
+                <MetricRow
+                  label="EMA Daily 21/34/55"
+                  value={t.ema21 ? `${t.ema21} / ${t.ema34} / ${t.ema55}` : '—'}
+                  good={parseFloat(t.ema21) > parseFloat(t.ema34) && parseFloat(t.ema34) > parseFloat(t.ema55)}
+                />
+                <MetricRow
+                  label="EMA Weekly 21/34/55"
+                  value={t.ema21w ? `${t.ema21w} / ${t.ema34w} / ${t.ema55w}` : '—'}
+                  good={parseFloat(t.ema21w) > parseFloat(t.ema34w) && parseFloat(t.ema34w) > parseFloat(t.ema55w)}
+                />
                 <MetricRow label="RSI (14 hari)" value={t.rsi} good={t.rsi > 40 && t.rsi < 70} />
                 <MetricRow label="MACD" value={t.macd} good={t.macd === 'Bullish'} />
-                <MetricRow label="Trend" value={t.trend} good={t.trend === 'Uptrend'} />
                 <MetricRow label="Rasio Volume" value={t.vol != null ? `${t.vol}x` : null} good={t.vol >= 1} />
               </div>
               <div className="mt-4">

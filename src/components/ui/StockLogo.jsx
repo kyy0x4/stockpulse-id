@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const palettes = [
   { from: '#059669', to: '#34d399' },
   { from: '#2563eb', to: '#38bdf8' },
@@ -17,23 +19,47 @@ function hashCode(str) {
   return h
 }
 
-export default function StockLogo({ ticker, name, size = 'md', className = '' }) {
+const sizes = {
+  sm: 'h-8 w-8 rounded-lg',
+  md: 'h-9 w-9 rounded-lg',
+  lg: 'h-14 w-14 rounded-2xl',
+}
+
+const fonts = {
+  sm: 'text-[11px]',
+  md: 'text-xs',
+  lg: 'text-lg',
+}
+
+export default function StockLogo({ ticker, name, logoUrl, size = 'md', className = '' }) {
   const key = (ticker || name || 'X').toUpperCase()
   const palette = palettes[hashCode(key) % palettes.length]
   const initials = key.slice(0, 2)
   const label = name ? `${name} (${ticker})` : ticker
+  const [imgFailed, setImgFailed] = useState(false)
+  const box = `${sizes[size] || sizes.md} ${className}`
 
-  const sizes = {
-    sm: 'h-8 w-8 rounded-lg text-[11px]',
-    md: 'h-9 w-9 rounded-lg text-xs',
-    lg: 'h-14 w-14 rounded-2xl text-lg',
+  if (logoUrl && !imgFailed) {
+    return (
+      <div className={`flex shrink-0 items-center justify-center bg-white ${box}`}>
+        <img
+          src={logoUrl}
+          alt={label}
+          title={label}
+          loading="lazy"
+          draggable={false}
+          onError={() => setImgFailed(true)}
+          className="h-[62%] w-[62%] object-contain"
+        />
+      </div>
+    )
   }
 
   return (
     <div
       aria-label={label}
       title={label}
-      className={`flex shrink-0 items-center justify-center font-mono font-bold text-white shadow-lg ${sizes[size] || sizes.md} ${className}`}
+      className={`flex shrink-0 items-center justify-center font-mono font-bold text-white ${fonts[size] || fonts.md} ${box}`}
       style={{
         background: `linear-gradient(135deg, ${palette.from}, ${palette.to})`,
         boxShadow: `0 4px 14px -4px ${palette.from}66`,

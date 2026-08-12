@@ -178,17 +178,19 @@ def _price_from_history(info):
 
 
 # ---------------------------------------------------------------------------
-# Teknikal: market structure (SMC) + EMA 21/34/55
+# Teknikal: EMA (daily + weekly) berbasis tren + market structure
 # ---------------------------------------------------------------------------
-# Pendekatan yang dipakai trader institusional / smart money:
-#   1. MARKET STRUCTURE — swing high/low, higher highs/lows, BOS & CHoCH
-#   2. EMA 21 / 34 / 55 (Fibonacci) — alinyemen & persilangan
-#   3. MOMENTUM — RSI & MACD sebagai konfirmasi
-#   4. VOLUME — rasio volume sebagai konfirmasi kekuatan
+# Karena horizon investasi long term, tren ditentukan dari dua timeframe:
+#   1. EMA DAILY 21/34/55 — candle di atas 3 EMA = bullish, di bawah = bearish
+#   2. EMA WEEKLY 21/34/55 — konfirmasi tren besar (trend utama)
+#   3. GOLDEN / DEATH CROSS EMA 21 vs 55 — sinyal pembalikan arah
+#   4. MARKET STRUCTURE (swing/BOS/CHoCH) — konfirmasi struktur
+#   5. RSI & MACD hanya sebagai konfirmasi momentum (bukan penentu tren)
+#   6. VOLUME — konfirmasi kekuatan
 # ---------------------------------------------------------------------------
 
 
-def score_technical(history):
+def score_technical(history, weekly=None):
     if not history or len(history) < 55:
         return {
             "score": None,
@@ -199,6 +201,11 @@ def score_technical(history):
             "ema21": None,
             "ema34": None,
             "ema55": None,
+            "ema21w": None,
+            "ema34w": None,
+            "ema55w": None,
+            "ema_cross": "N/A",
+            "ema_cross_weekly": "N/A",
             "structure": "N/A",
             "close": None,
             "note": "Perlu minimal 55 hari data (EMA 55)",
@@ -207,22 +214,46 @@ def score_technical(history):
     df = pd.DataFrame(history)
     close = df["close"].astype(float)
     volume = df["volume"].astype(float) if "volume" in df else None
-
-    # --- EMA 21 / 34 / 55 (Fibonacci) --------------------------------------
-    ema21 = float(close.ewm(span=21, adjust=False).mean().iloc[-1])
-    ema34 = float(close.ewm(span=34, adjust=False).mean().iloc[-1])
-    ema55 = float(close.ewm(span=55, adjust=False).mean().iloc[-1])
-
     price = float(close.iloc[-1])
-    ema_score = _ema_alignment_score(price, ema21, ema34, ema55)
+
+    # --- EMA DAILY 21 / 34 / 55 ---------------------------------------------
+    ema21_s = close.ewm(span=21, adjust=False).mean()
+    ema34_s = close.ewm(span=34, adjust=False).mean()
+    ema55_s = close.ewm(span=55, adjust=False).mean()
+    ema21 = float(ema21_s.iloc[-1])
+    ema34 = float(ema34_s.iloc[-1])
+    ema55 = float(ema55_s.iloc[-1])
+
+    # --- EMA WEEKLY 21 / 34 / 55 --------------------------------------------
+    w21 = w34 = w55 = wprice = None
+    has_weekly = weekly is not None and len(weekly) >= 8
+    if has_weekly:
+        wclose = pd.DataFrame(weekly)["close"].astype(float)
+        wprice = float(wclose.iloc[-1])
+        w21_s = wclose.ewm(span=21, adjust=False).mean()
+        w34_s = wclose.ewm(span=34, adjust=False).mean()
+        w55_s = wclose.ewm(span=55, adjust=False).mean()
+        w21 = float(w21_s.iloc[-1])
+        w34 = float(w34_s.iloc[-1])
+        w55 = float(w55_s.iloc[-1])
+
+    d_above = _above_count(price, ema21, ema34, ema55)
+    w_above = _above_count(wprice, w21, w34, w55) if has_weekly else None
+
+    ema_trend_score = _ema_trend_score(d_above, w_above, ema21, ema34, ema55, w21, w34, w55)
+
+    # --- GOLDEN / DEATH CROSS EMA 21 vs 55 ----------------------------------
+    daily_cross = _ema_cross_state(ema21_s, ema55_s, lookback=15)
+    weekly_cross = _ema_cross_state(w21_s, w55_s, lookback=6) if has_weekly else None
+    cross_score = _ema_cross_score(daily_cross, weekly_cross)
 
     # --- MARKET STRUCTURE ---------------------------------------------------
     structure, bos, choch = _market_structure(df, price)
+    structure_score = _structure_score(structure, bos, choch)
 
-    # --- MOMENTUM (RSI + MACD) ---------------------------------------------
+    # --- MOMENTUM (konfirmasi saja) -----------------------------------------
     rsi = _compute_rsi(close)
     macd_cross, macd_positive = _compute_macd(close)
-
     rsi_score = _rsi_score(rsi)
     macd_score = 90 if macd_cross == "Bullish" and macd_positive else 70 if macd_cross == "Bullish" else 35
 
@@ -237,22 +268,24 @@ def score_technical(history):
             vol_score = _vol_score(vol_ratio)
 
     # --- AGREGASI -------------------------------------------------------------
-    structure_score = _structure_score(structure, bos, choch)
     weights = {
-        "structure": 0.40,
-        "ema": 0.30,
-        "momentum": 0.20,
+        "ema_trend": 0.40,
+        "ema_cross": 0.15,
+        "structure": 0.20,
+        "momentum": 0.15,
         "volume": 0.10,
     }
+    momentum_score = max(rsi_score, macd_score)
     total = round(
-        structure_score * weights["structure"]
-        + ema_score * weights["ema"]
-        + (max(rsi_score, macd_score)) * weights["momentum"]
+        ema_trend_score * weights["ema_trend"]
+        + cross_score * weights["ema_cross"]
+        + structure_score * weights["structure"]
+        + momentum_score * weights["momentum"]
         + vol_score * weights["volume"]
     )
     total = max(0, min(100, total))
 
-    trend = _trend_label(structure, price, ema21, ema34, ema55)
+    trend = _ema_trend_label(d_above, w_above, daily_cross, structure)
 
     return {
         "score": total,
@@ -263,13 +296,19 @@ def score_technical(history):
         "ema21": _fmt(ema21, 0),
         "ema34": _fmt(ema34, 0),
         "ema55": _fmt(ema55, 0),
+        "ema21w": _fmt(w21, 0),
+        "ema34w": _fmt(w34, 0),
+        "ema55w": _fmt(w55, 0),
+        "ema_cross": daily_cross,
+        "ema_cross_weekly": weekly_cross or "N/A",
         "close": _fmt(price, 0),
         "structure": structure,
         "bos": bos,
         "choch": choch,
         "components": {
+            "EMA trend (D+W)": ema_trend_score,
+            "EMA cross": cross_score,
             "Market structure": structure_score,
-            "EMA 21/34/55": ema_score,
             "RSI": rsi_score,
             "MACD": macd_score,
             "Volume": vol_score,
@@ -277,23 +316,99 @@ def score_technical(history):
     }
 
 
-def _ema_alignment_score(price, ema21, ema34, ema55):
-    score = 50
-    aligned_up = ema21 > ema34 > ema55
-    aligned_down = ema21 < ema34 < ema55
-    if price > ema21:
-        score += 20
-    if price > ema55:
-        score += 20
-    if aligned_up:
-        score += 25
-    elif aligned_down:
-        score -= 25
-    if ema21 > ema55:
-        score += 10
+def _above_count(price, *emas):
+    return sum(1 for e in emas if e is not None and price > e)
+
+
+def _ema_trend_score(d_above, w_above, e21, e34, e55, w21, w34, w55):
+    score = 50.0
+    if d_above >= 2:
+        score += 15 + (d_above - 2) * 15
+    elif d_above == 1:
+        score -= 5
     else:
+        score -= 25
+    if w_above is not None:
+        if w_above >= 2:
+            score += 10 + (w_above - 2) * 10
+        elif w_above == 0:
+            score -= 15
+    if e21 > e34 > e55:
+        score += 20
+    elif e21 < e34 < e55:
+        score -= 20
+    elif e21 > e55:
+        score += 5
+    if w21 is not None and w21 > w34 > w55:
+        score += 10
+    elif w21 is not None and w21 < w34 < w55:
         score -= 10
-    return max(0, min(100, score))
+    return max(0, min(100, int(score)))
+
+
+def _ema_cross_state(fast, slow, lookback=15):
+    if slow is None or len(fast) < 3:
+        return "Neutral"
+    diff = (fast - slow).fillna(0)
+    cur = float(diff.iloc[-1])
+    n = min(lookback, len(diff) - 1)
+    recent = diff.iloc[-(n + 1):].values
+    prev = recent[0]
+    golden = death = False
+    for v in recent[1:]:
+        if prev <= 0 < v:
+            golden = True
+        elif prev >= 0 > v:
+            death = True
+        prev = v
+    if golden and not death:
+        return "Golden Cross"
+    if death and not golden:
+        return "Death Cross"
+    if golden and death:
+        return "Golden Cross" if cur > 0 else "Death Cross"
+    return "Bullish" if cur > 0 else "Bearish" if cur < 0 else "Neutral"
+
+
+def _ema_cross_score(daily, weekly):
+    base = 50
+    if daily == "Golden Cross":
+        base += 25
+    elif daily == "Death Cross":
+        base -= 25
+    elif daily == "Bullish":
+        base += 10
+    elif daily == "Bearish":
+        base -= 10
+    if weekly == "Golden Cross":
+        base += 15
+    elif weekly == "Death Cross":
+        base -= 15
+    elif weekly == "Bullish":
+        base += 8
+    elif weekly == "Bearish":
+        base -= 8
+    return max(0, min(100, base))
+
+
+def _ema_trend_label(d_above, w_above, daily_cross, structure):
+    strong_bull = d_above == 3 and (w_above is None or w_above >= 2)
+    if strong_bull:
+        return "Uptrend"
+    strong_bear = d_above == 0 and (w_above is None or w_above <= 1)
+    if strong_bear:
+        return "Downtrend"
+    if d_above == 3 or (d_above == 2 and daily_cross in ("Golden Cross", "Bullish")):
+        return "Uptrend"
+    if d_above == 0 or (d_above == 1 and daily_cross in ("Death Cross", "Bearish")):
+        return "Downtrend"
+    if d_above == 2 and daily_cross in ("Golden Cross", "Bullish"):
+        return "Uptrend"
+    if d_above == 1 and daily_cross in ("Death Cross", "Bearish"):
+        return "Downtrend"
+    if structure in ("Uptrend", "Downtrend"):
+        return structure
+    return "Sideways"
 
 
 def _market_structure(df, price):

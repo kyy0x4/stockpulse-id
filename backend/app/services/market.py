@@ -1,5 +1,6 @@
 import time
 import warnings
+from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,17 @@ import yfinance as yf
 from app.data.tickers import SECTOR_GROUP, ALL_TICKERS
 
 warnings.filterwarnings("ignore")
+
+
+def domain_from_website(url):
+    """Ekstrak domain (tanpa www) dari URL website emiten."""
+    try:
+        host = (urlparse(url).netloc or urlparse("//" + url).netloc).lower()
+        if host.startswith("www."):
+            host = host[4:]
+        return host or None
+    except Exception:
+        return None
 
 
 def fetch_batch_histories(tickers=None, period="6mo", interval="1d"):
@@ -115,8 +127,13 @@ def fetch_info(ticker):
     t = yf.Ticker(f"{ticker}.JK")
     info = t.info
     sector = _clean(info.get("sector"))
+    website = _clean(info.get("website"))
+    domain = domain_from_website(website)
     return {
         "name": info.get("longName") or info.get("shortName") or ticker,
+        "domain": domain,
+        "website": website,
+        "logo_url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None,
         "sector_raw": sector,
         "sector": SECTOR_GROUP.get(sector, sector or "Lainnya"),
         "currency": info.get("currency") or "IDR",

@@ -69,7 +69,7 @@ export default function DashboardPage({ stocks, loading, onSelectStock, onToggle
                   className="glass rounded-2xl p-5 cursor-pointer hover:border-up/25 transition-colors h-full"
                 >
                   <div className="flex items-center gap-2.5 mb-2">
-                    <StockLogo ticker={s.ticker} name={s.name} size="sm" />
+                    <StockLogo ticker={s.ticker} name={s.name} size="sm" logoUrl={s.logoUrl} />
                     <p className="text-xs text-ink-faint truncate">{s.name}</p>
                   </div>
                   <p className="font-mono text-xl font-bold tracking-tight">

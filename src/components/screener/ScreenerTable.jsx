@@ -53,7 +53,7 @@ export default function ScreenerTable({ stocks, onSelect, onToggleFav, favorites
               >
                 <td className="px-6 py-3.5">
                   <div className="flex items-center gap-3">
-                    <StockLogo ticker={s.ticker} name={s.name} />
+                    <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} />
                     <div>
                       <p className="font-semibold tracking-tight">{s.ticker}</p>
                       <p className="text-xs text-ink-faint max-w-[160px] truncate">{s.name}</p>

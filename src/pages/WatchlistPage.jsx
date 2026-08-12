@@ -57,7 +57,7 @@ export default function WatchlistPage({ favorites, stocks, onSelectStock, onTogg
                 <Card hover className="p-5 h-full">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <StockLogo ticker={s.ticker} name={s.name} size="md" />
+                      <StockLogo ticker={s.ticker} name={s.name} size="md" logoUrl={s.logoUrl} />
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-semibold tracking-tight">{s.ticker}</p>
