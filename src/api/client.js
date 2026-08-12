@@ -1,0 +1,24 @@
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+
+async function get(path) {
+  const res = await fetch(`${API_BASE}${path}`)
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`)
+  return res.json()
+}
+
+export const api = {
+  list(sector, signal, minScore, q) {
+    const params = new URLSearchParams({ limit: '100' })
+    if (sector && sector !== 'Semua') params.set('sector', sector)
+    if (signal && signal !== 'Semua') params.set('signal', signal)
+    if (minScore) params.set('min_score', String(minScore))
+    if (q) params.set('q', q)
+    return get(`/stocks?${params}`)
+  },
+  detail(ticker) {
+    return get(`/stocks/${ticker}`)
+  },
+  tickers() {
+    return get('/tickers')
+  },
+}
