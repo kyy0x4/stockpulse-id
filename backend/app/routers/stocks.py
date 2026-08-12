@@ -1,10 +1,12 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
-from app.services.market import fetch_info
+from app.services.market import fetch_info, fetch_ihsg
 from app.data.tickers import ALL_TICKERS, SECTOR_GROUPS
 from app.services.cache import get, set as cache_set
+from app.services.jsonutil import sanitize
 import app.services.analysis_runner as runner
 
 router = APIRouter(prefix="/api", tags=["stocks"])
@@ -13,6 +15,17 @@ router = APIRouter(prefix="/api", tags=["stocks"])
 @router.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@router.get("/market/ihsg")
+def ihsg():
+    cached = get("market:ihsg")
+    if cached is None:
+        cached = sanitize(fetch_ihsg(period="1y"))
+        cache_set("market:ihsg", cached, ttl=600)
+    if cached is None:
+        raise HTTPException(502, "Gagal mengambil data IHSG dari Yahoo Finance")
+    return JSONResponse(cached, headers={"Cache-Control": "public, max-age=300, s-maxage=300"})
 
 
 _building = False
@@ -46,7 +59,7 @@ def _warm_async():
     from app.services.cache import set as cache_set
     try:
         results = runner.build_all()
-        cache_set("screen:all", results, ttl=60 * 60 * 6)
+        cache_set("screen:all", sanitize(results), ttl=60 * 60 * 6)
     except Exception:
         pass
     finally:
@@ -71,10 +84,11 @@ def list_stocks(
         results = [s for s in cached if _matches(s, sector, signal, min_score, q)]
     else:
         results = runner.build_all()
-        cache_set("screen:all", results, ttl=600)
+        cache_set("screen:all", sanitize(results), ttl=600)
 
     results.sort(key=lambda s: (s["composite"] if s["composite"] is not None else -1), reverse=True)
-    return {"total": len(results), "stocks": results[:limit]}
+    body = {"total": len(results), "stocks": sanitize(results[:limit])}
+    return JSONResponse(body, headers={"Cache-Control": "public, max-age=300, s-maxage=300"})
 
 
 def _matches(s, sector, signal, min_score, q):
@@ -95,6 +109,6 @@ def stock_detail(ticker: str):
     if code not in ALL_TICKERS:
         raise HTTPException(404, f"Ticker {code} tidak ditemukan")
     try:
-        return runner.get_stock_detail(code)
+        return sanitize(runner.get_stock_detail(code))
     except Exception as exc:
         raise HTTPException(500, f"Gagal mengambil data {code}: {exc}")

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import Badge from '../components/ui/Badge'
 import ScoreRing from '../components/ui/ScoreRing'
 import ProgressBar from '../components/ui/ProgressBar'
+import StockLogo from '../components/ui/StockLogo'
 import PriceTrendChart from '../components/charts/PriceTrendChart'
 import { X, Star, TrendingUp, TrendingDown, Clock, BarChart3, PieChart, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
@@ -16,9 +17,9 @@ const mockSeries = [
 
 function MetricRow({ label, value, good }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className={`font-mono text-sm font-semibold ${good ? 'text-emerald-400' : 'text-red-400'}`}>{value ?? '—'}</span>
+    <div className="flex items-center justify-between rounded-xl bg-card border border-line px-3.5 py-2.5">
+      <span className="text-xs text-ink-soft">{label}</span>
+      <span className={`font-mono text-sm font-semibold ${good ? 'text-up' : 'text-down'}`}>{value ?? '—'}</span>
     </div>
   )
 }
@@ -57,7 +58,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 backdrop-blur-sm p-4 md:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-overlay/80 backdrop-blur-sm p-4 md:p-8"
       onClick={onClose}
     >
       <motion.div
@@ -65,12 +66,12 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 30, opacity: 0, scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="relative w-full max-w-4xl rounded-3xl border border-white/[0.08] bg-[#060d1c] shadow-2xl"
+        className="relative w-full max-w-4xl rounded-3xl border border-line-strong bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-2 text-slate-400 hover:text-white transition-colors cursor-pointer z-10"
+          className="absolute right-4 top-4 rounded-xl border border-line-strong bg-card p-2 text-ink-soft hover:text-ink transition-colors cursor-pointer z-10"
           aria-label="Tutup"
         >
           <X size={18} />
@@ -79,9 +80,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
         <div className="p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/20 font-mono text-lg font-bold text-emerald-400">
-                {stock.ticker.slice(0, 2)}
-              </div>
+              <StockLogo ticker={stock.ticker} name={name} size="lg" />
               <div>
                 <div className="flex items-center gap-2.5">
                   <h2 className="text-xl font-bold tracking-tight">{stock.ticker}</h2>
@@ -89,8 +88,8 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                     {stock.signal === 'BUY' ? 'Layak Beli' : stock.signal === 'SELL' ? 'Hindari' : 'Tahan'}
                   </Badge>
                 </div>
-                <p className="text-sm text-slate-500 mt-0.5">{name} · {sector}</p>
-                <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                <p className="text-sm text-ink-faint mt-0.5">{name} · {sector}</p>
+                <p className="text-xs text-ink-faint mt-1 flex items-center gap-1">
                   <Clock size={11} /> Update: data real & analisa otomatis
                 </p>
               </div>
@@ -100,8 +99,8 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                 onClick={() => onToggleFav(stock.ticker)}
                 className={`rounded-xl border px-3 py-2 text-sm transition-all cursor-pointer ${
                   isFav
-                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                    : 'border-white/[0.08] bg-white/[0.03] text-slate-400 hover:text-white'
+                    ? 'border-warning/30 bg-warning/10 text-warning'
+                    : 'border-line-strong bg-card text-ink-soft hover:text-ink'
                 }`}
               >
                 <Star size={14} className="inline mr-1.5" fill={isFav ? 'currentColor' : 'none'} />
@@ -109,7 +108,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
               </button>
               <div className="text-right">
                 <p className="font-mono text-2xl font-bold tracking-tight">{price != null ? price.toLocaleString('id-ID') : '—'}</p>
-                <p className={`flex items-center justify-end gap-1 font-mono text-sm ${change != null && change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`flex items-center justify-end gap-1 font-mono text-sm ${change != null && change >= 0 ? 'text-up' : 'text-down'}`}>
                   {change != null && change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                   {change != null ? `${change >= 0 ? '+' : ''}${change}%` : '—'}
                 </p>
@@ -117,11 +116,11 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="mt-6 rounded-2xl border border-line bg-card p-4">
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 size={15} className="text-sky-400" />
+              <BarChart3 size={15} className="text-info" />
               <p className="text-sm font-semibold">Performa Harga {history.length > 0 ? '(30 hari)' : '(10 hari)'}</p>
-              {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-slate-500" />}
+              {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-ink-faint" />}
             </div>
             <div className="h-[180px]">
               <PriceTrendChart data={chartData} />
@@ -131,9 +130,9 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <PieChart size={15} className="text-emerald-400" />
+                <PieChart size={15} className="text-up" />
                 <h3 className="text-sm font-semibold">Fundamental</h3>
-                <span className="ml-auto font-mono text-xs text-slate-500">Skor: {f.score ?? '—'}/100</span>
+                <span className="ml-auto font-mono text-xs text-ink-faint">Skor: {f.score ?? '—'}/100</span>
               </div>
               <div className="space-y-2">
                 <MetricRow label="PER (Price to Earnings)" value={f.per} good={f.per > 0 && f.per < 15} />
@@ -144,8 +143,8 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-400">Skor Fundamental</span>
-                  <span className="font-mono text-emerald-400">{f.score ?? '—'}</span>
+                  <span className="text-ink-soft">Skor Fundamental</span>
+                  <span className="font-mono text-up">{f.score ?? '—'}</span>
                 </div>
                 <ProgressBar value={f.score ?? 0} color={f.score >= 75 ? '#22c55e' : f.score >= 60 ? '#f59e0b' : '#ef4444'} />
               </div>
@@ -153,9 +152,9 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
 
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={15} className="text-sky-400" />
+                <TrendingUp size={15} className="text-info" />
                 <h3 className="text-sm font-semibold">Teknikal</h3>
-                <span className="ml-auto font-mono text-xs text-slate-500">Skor: {t.score ?? '—'}/100</span>
+                <span className="ml-auto font-mono text-xs text-ink-faint">Skor: {t.score ?? '—'}/100</span>
               </div>
               <div className="space-y-2">
                 <MetricRow label="RSI (14 hari)" value={t.rsi} good={t.rsi > 40 && t.rsi < 70} />
@@ -165,18 +164,18 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-400">Skor Teknikal</span>
-                  <span className="font-mono text-sky-400">{t.score ?? '—'}</span>
+                  <span className="text-ink-soft">Skor Teknikal</span>
+                  <span className="font-mono text-info">{t.score ?? '—'}</span>
                 </div>
                 <ProgressBar value={t.score ?? 0} color={t.score >= 75 ? '#22c55e' : t.score >= 60 ? '#f59e0b' : '#ef4444'} />
               </div>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 p-5">
+          <div className="mt-6 flex items-center justify-between rounded-2xl bg-gradient-to-r from-up/10 to-up/5 border border-up/20 p-5">
             <div>
-              <p className="text-xs text-emerald-400/80 uppercase tracking-widest font-medium">Skor Total Composite</p>
-              <p className="mt-1 text-sm text-slate-400 max-w-sm">
+              <p className="text-xs text-up/80 uppercase tracking-widest font-medium">Skor Total Composite</p>
+              <p className="mt-1 text-sm text-ink-soft max-w-sm">
                 {stock.composite >= 75
                   ? 'Saham ini lolos seleksi fundamental & teknikal jangka panjang. Cocok untuk masuk daftar kandidat beli.'
                   : stock.composite >= 60

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api')
 
 async function get(path) {
   const res = await fetch(`${API_BASE}${path}`)
@@ -17,6 +17,9 @@ export const api = {
   },
   detail(ticker) {
     return get(`/stocks/${ticker}`)
+  },
+  ihsg() {
+    return get('/market/ihsg')
   },
   tickers() {
     return get('/tickers')

@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion'
+import { usePalette } from '../../theme/ThemeProvider'
 
 export default function MiniSparkline({ data, positive = true, width = 96, height = 32 }) {
-  const color = positive ? '#22c55e' : '#ef4444'
+  const p = usePalette()
+  const color = positive ? p.up : p.down
   const min = Math.min(...data)
   const max = Math.max(...data)
   const range = max - min || 1

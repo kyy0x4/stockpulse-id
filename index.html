@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="StockPulse ID — Platform analisa fundamental & teknikal saham Indonesia untuk investasi jangka panjang" />
     <title>StockPulse ID · Analisa Saham Indonesia</title>
+    <script>
+      try {
+        if (localStorage.getItem('stockpulse-theme') === 'light') {
+          document.documentElement.classList.remove('dark')
+        } else {
+          document.documentElement.classList.add('dark')
+        }
+      } catch (e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

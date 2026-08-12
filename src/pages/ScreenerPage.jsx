@@ -31,7 +31,7 @@ export default function ScreenerPage({ stocks, onSelectStock, onToggleFav, favor
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="text-sm text-slate-500 mt-1"
+          className="text-sm text-ink-faint mt-1"
         >
           Saring semua saham Indonesia berdasarkan kriteria fundamental & teknikal
         </motion.p>

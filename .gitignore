@@ -36,3 +36,4 @@ __pycache__/
 # AI tooling / skills
 .opencode/
 .commandcode/
+.vercel

@@ -1,13 +1,16 @@
+import { usePalette } from '../../theme/ThemeProvider'
+
 export default function ScoreRing({ value, size = 56, stroke = 5 }) {
+  const p = usePalette()
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const pct = value / 100
-  const color = value >= 75 ? '#22c55e' : value >= 60 ? '#f59e0b' : '#ef4444'
+  const color = value >= 75 ? p.up : value >= 60 ? p.warn : p.down
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={p.track} strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}

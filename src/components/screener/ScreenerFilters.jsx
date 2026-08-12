@@ -29,35 +29,35 @@ export default function ScreenerFilters({ onApply }) {
     >
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
-          <SlidersHorizontal size={16} className="text-emerald-400" />
+          <SlidersHorizontal size={16} className="text-up" />
           <h3 className="font-semibold text-sm">Filter Saham</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 font-medium">Cari Ticker / Nama</label>
+            <label className="block text-xs text-ink-faint mb-1.5 font-medium">Cari Ticker / Nama</label>
             <input
               value={query}
               onChange={(e) => { setQuery(e.target.value); apply() }}
               placeholder="BBCA, Bank..."
-              className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3.5 py-2 text-sm placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+              className="w-full rounded-xl bg-elevated border border-line-strong px-3.5 py-2 text-sm placeholder:text-ink-faint focus:outline-none focus:border-up/40 focus:ring-2 focus:ring-up/10 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 font-medium">Sektor</label>
+            <label className="block text-xs text-ink-faint mb-1.5 font-medium">Sektor</label>
             <select
               value={sector}
               onChange={(e) => { setSector(e.target.value); apply() }}
-              className="w-full rounded-xl bg-[#0b1526] border border-white/[0.08] px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-500/40 cursor-pointer"
+              className="w-full rounded-xl bg-elevated border border-line-strong px-3.5 py-2 text-sm focus:outline-none focus:border-up/40 cursor-pointer"
             >
               {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 font-medium">
-              Min. Skor Total: <span className="text-emerald-400 font-mono">{minScore}</span>
+            <label className="block text-xs text-ink-faint mb-1.5 font-medium">
+              Min. Skor Total: <span className="text-up font-mono">{minScore}</span>
             </label>
             <input
               type="range"
@@ -66,12 +66,12 @@ export default function ScreenerFilters({ onApply }) {
               step="5"
               value={minScore}
               onChange={(e) => { setMinScore(Number(e.target.value)); apply() }}
-              className="w-full accent-emerald-500 cursor-pointer"
+              className="w-full accent-up cursor-pointer"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5 font-medium">Signal</label>
+            <label className="block text-xs text-ink-faint mb-1.5 font-medium">Signal</label>
             <div className="flex gap-1.5">
               {['Semua', 'BUY', 'HOLD', 'SELL'].map((s) => (
                 <button
@@ -79,8 +79,8 @@ export default function ScreenerFilters({ onApply }) {
                   onClick={() => { setSignal(s); apply() }}
                   className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                     signal === s
-                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-                      : 'border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                      ? 'border-up/40 bg-up/10 text-up'
+                      : 'border-line-strong text-ink-soft hover:text-ink hover:bg-elevated'
                   }`}
                 >
                   {s}
@@ -93,7 +93,7 @@ export default function ScreenerFilters({ onApply }) {
         <div className="mt-4 flex items-center justify-end">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:text-ink transition-colors cursor-pointer"
           >
             <RotateCcw size={13} /> Reset Filter
           </button>

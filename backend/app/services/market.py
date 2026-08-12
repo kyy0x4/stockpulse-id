@@ -68,6 +68,49 @@ def fetch_history(ticker, period="6mo", interval="1d"):
     return data
 
 
+def fetch_ihsg(period="1y", interval="1d"):
+    """Fetch real IHSG (^JKSE) index history + current snapshot."""
+    try:
+        hist = yf.download(
+            tickers="^JKSE", period=period, interval=interval,
+            auto_adjust=True, actions=False, progress=False,
+        )
+    except Exception:
+        return None
+    if hist is None or hist.empty:
+        return None
+    if isinstance(hist.columns, pd.MultiIndex):
+        hist.columns = hist.columns.get_level_values(0)
+    hist = hist.reset_index()
+    rows = [
+        {
+            "date": row.Date.strftime("%Y-%m-%d") if hasattr(row.Date, "strftime") else str(row.Date),
+            "open": _clean(row.get("Open")),
+            "high": _clean(row.get("High")),
+            "low": _clean(row.get("Low")),
+            "close": _clean(row.get("Close")),
+            "volume": _clean(row.get("Volume")),
+        }
+        for _, row in hist.iterrows()
+    ]
+    if not rows:
+        return None
+    last = rows[-1]
+    first = rows[0]
+    prev = rows[-2] if len(rows) > 1 else first
+    change = ((last["close"] - prev["close"]) / prev["close"] * 100) if prev["close"] else 0
+    ytd = ((last["close"] - first["close"]) / first["close"] * 100) if first["close"] else 0
+    return {
+        "name": "IHSG",
+        "code": "^JKSE",
+        "price": last["close"],
+        "change": round(change, 2),
+        "ytd": round(ytd, 2),
+        "last_updated": last["date"],
+        "history": rows,
+    }
+
+
 def fetch_info(ticker):
     t = yf.Ticker(f"{ticker}.JK")
     info = t.info

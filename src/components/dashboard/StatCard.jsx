@@ -11,15 +11,15 @@ export default function StatCard({ icon: Icon, label, value, sub, positive, inde
       <Card hover className="p-5">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium">{label}</p>
+            <p className="text-xs text-ink-faint font-medium">{label}</p>
             <p className="mt-1.5 text-2xl font-bold tracking-tight">{value}</p>
             {sub && (
-              <p className={`mt-1 font-mono text-xs ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
+              <p className={`mt-1 font-mono text-xs ${positive ? 'text-up' : 'text-down'}`}>
                 {positive ? '▲' : '▼'} {sub}
               </p>
             )}
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/15 text-emerald-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-up/20 to-up/10 border border-up/15 text-up">
             <Icon size={18} />
           </div>
         </div>

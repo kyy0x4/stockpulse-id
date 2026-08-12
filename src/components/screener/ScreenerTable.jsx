@@ -2,17 +2,18 @@ import { motion } from 'framer-motion'
 import Card from '../ui/Card'
 import Badge from '../ui/Badge'
 import ScoreRing from '../ui/ScoreRing'
+import StockLogo from '../ui/StockLogo'
 import { Star, ArrowUpDown, Filter } from 'lucide-react'
 
 export default function ScreenerTable({ stocks, onSelect, onToggleFav, favorites }) {
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-line">
         <div className="flex items-center gap-3">
-          <Filter size={16} className="text-emerald-400" />
+          <Filter size={16} className="text-up" />
           <div>
             <h3 className="font-semibold">Hasil Screener</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{stocks.length} saham memenuhi filter</p>
+            <p className="text-xs text-ink-faint mt-0.5">{stocks.length} saham memenuhi filter</p>
           </div>
         </div>
         <Badge tone="blue" dot>Data real-time</Badge>
@@ -21,9 +22,9 @@ export default function ScreenerTable({ stocks, onSelect, onToggleFav, favorites
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-slate-500 border-b border-white/[0.06]">
+            <tr className="text-left text-xs text-ink-faint border-b border-line">
               <th className="px-6 py-3 font-medium">
-                <button className="inline-flex items-center gap-1 hover:text-slate-300 transition-colors cursor-pointer">
+                <button className="inline-flex items-center gap-1 hover:text-ink/70 transition-colors cursor-pointer">
                   Saham <ArrowUpDown size={12} />
                 </button>
               </th>
@@ -48,32 +49,30 @@ export default function ScreenerTable({ stocks, onSelect, onToggleFav, favorites
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.03, duration: 0.3 }}
                 onClick={() => onSelect?.(s)}
-                className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                className="border-b border-line last:border-0 hover:bg-elevated transition-colors cursor-pointer"
               >
                 <td className="px-6 py-3.5">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/15 font-mono text-xs font-bold text-emerald-400">
-                      {s.ticker.slice(0, 2)}
-                    </div>
+                    <StockLogo ticker={s.ticker} name={s.name} />
                     <div>
                       <p className="font-semibold tracking-tight">{s.ticker}</p>
-                      <p className="text-xs text-slate-500 max-w-[160px] truncate">{s.name}</p>
+                      <p className="text-xs text-ink-faint max-w-[160px] truncate">{s.name}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3.5 text-right">
                   <p className="font-mono font-semibold">{s.price.toLocaleString('id-ID')}</p>
-                  <p className={`font-mono text-xs ${s.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <p className={`font-mono text-xs ${s.change >= 0 ? 'text-up' : 'text-down'}`}>
                     {s.change >= 0 ? '+' : ''}{s.change}%
                   </p>
                 </td>
                 <td className="px-4 py-3.5 text-center">
                   <Badge tone="neutral">{s.sector}</Badge>
                 </td>
-                <td className="px-4 py-3.5 text-right font-mono text-xs text-slate-300">{s.fundamental.per || '—'}</td>
-                <td className="px-4 py-3.5 text-right font-mono text-xs text-slate-300">{s.fundamental.roe != null ? `${s.fundamental.roe}%` : '—'}</td>
-                <td className="px-4 py-3.5 text-right font-mono text-xs text-emerald-400">{s.fundamental.growth != null ? `${s.fundamental.growth}%` : '—'}</td>
-                <td className="px-4 py-3.5 text-center font-mono text-xs text-slate-300">{s.technical.rsi ?? '—'}</td>
+                <td className="px-4 py-3.5 text-right font-mono text-xs text-ink/70">{s.fundamental.per || '—'}</td>
+                <td className="px-4 py-3.5 text-right font-mono text-xs text-ink/70">{s.fundamental.roe != null ? `${s.fundamental.roe}%` : '—'}</td>
+                <td className="px-4 py-3.5 text-right font-mono text-xs text-up">{s.fundamental.growth != null ? `${s.fundamental.growth}%` : '—'}</td>
+                <td className="px-4 py-3.5 text-center font-mono text-xs text-ink/70">{s.technical.rsi ?? '—'}</td>
                 <td className="px-4 py-3.5 text-center">
                   <Badge tone={s.technical.trend === 'Uptrend' ? 'green' : s.technical.trend === 'Downtrend' ? 'red' : 'amber'}>
                     {s.technical.trend}
@@ -93,7 +92,7 @@ export default function ScreenerTable({ stocks, onSelect, onToggleFav, favorites
                   <button
                     onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
                     className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                      favorites.includes(s.ticker) ? 'text-amber-400 bg-amber-500/10' : 'text-slate-500 hover:text-amber-400 hover:bg-amber-500/10'
+                      favorites.includes(s.ticker) ? 'text-warning bg-warning/10' : 'text-ink-faint hover:text-warning hover:bg-warning/10'
                     }`}
                     aria-label="Watchlist"
                   >

@@ -1,12 +1,21 @@
 import { motion } from 'framer-motion'
 import Card from '../ui/Card'
-import { TrendingUp } from 'lucide-react'
-import { ihsgHistory } from '../../data/stocks'
+import { TrendingUp, TrendingDown } from 'lucide-react'
+import { useIHSG } from '../../hooks/useIHSG'
 import IHSGChart from '../charts/IHSGChart'
 
 export default function MarketChart() {
-  const last = ihsgHistory[ihsgHistory.length - 1]
-  const first = ihsgHistory[0]
+  const { ihsg, loading } = useIHSG()
+  const history = ihsg?.history || []
+  const last = history[history.length - 1]
+  const first = history[0]
+  const positive = (ihsg?.change ?? 0) >= 0
+  const ChangeIcon = positive ? TrendingUp : TrendingDown
+
+  const ytdPct = (() => {
+    if (!last || !first || !first.close) return null
+    return ((last.close - first.close) / first.close * 100).toFixed(2)
+  })()
 
   return (
     <motion.div
@@ -20,23 +29,27 @@ export default function MarketChart() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold">Indeks Harga Saham Gabungan</h3>
-              <span className="rounded-md bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 font-mono text-[10px] text-slate-400">
-                1D · 1M · 6M · 1Y
+              <span className="rounded-md bg-elevated border border-line-strong px-2 py-0.5 font-mono text-[10px] text-ink-soft">
+                1Y
               </span>
             </div>
             <div className="mt-2 flex items-baseline gap-3">
-              <span className="text-3xl font-bold tracking-tight font-mono">7.840</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-mono text-sm">
-                <TrendingUp size={14} /> +0,82%
+              <span className="text-3xl font-bold tracking-tight font-mono">
+                {loading ? '…' : (ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+              </span>
+              <span className={`flex items-center gap-1 font-mono text-sm ${positive ? 'text-up' : 'text-down'}`}>
+                <ChangeIcon size={14} /> {positive ? '+' : ''}{(ihsg?.change ?? 0).toLocaleString('id-ID')}%
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500 font-mono">
-              Naik {((last.value - first.value) / first.value * 100).toFixed(2)}% dalam 12 bulan terakhir
+            <p className="mt-1 text-xs text-ink-faint font-mono">
+              {ytdPct != null
+                ? `${positive ? 'Naik' : 'Turun'} ${ytdPct}% sepanjang 1 tahun terakhir`
+                : 'memuat data…'}
             </p>
           </div>
         </div>
         <div className="h-[260px]">
-          <IHSGChart />
+          <IHSGChart history={history} />
         </div>
       </Card>
     </motion.div>

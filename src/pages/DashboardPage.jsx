@@ -3,14 +3,24 @@ import { Wallet, TrendingUp, Activity, Layers, Loader2 } from 'lucide-react'
 import StatCard from '../components/dashboard/StatCard'
 import MarketChart from '../components/dashboard/MarketChart'
 import StockTable from '../components/dashboard/StockTable'
+import StockLogo from '../components/ui/StockLogo'
+import { useIHSG } from '../hooks/useIHSG'
 
-export default function DashboardPage({ stocks, loading, onSelectStock }) {
+export default function DashboardPage({ stocks, loading, onSelectStock, onToggleFav, favorites }) {
+  const { ihsg, loading: ihsgLoading } = useIHSG()
   const valid = (stocks || []).filter((s) => s.composite != null)
   const top = [...valid].sort((a, b) => b.composite - a.composite).slice(0, 8)
   const buys = valid.filter((s) => s.signal === 'BUY')
 
+  const ihsgPositive = (ihsg?.change ?? 0) >= 0
   const stats = [
-    { icon: TrendingUp, label: 'IHSG', value: loading ? '…' : '7.840', sub: loading ? 'memuat data' : '+0,82%', positive: true },
+    {
+      icon: TrendingUp,
+      label: 'IHSG',
+      value: ihsgLoading ? '…' : (ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }),
+      sub: ihsgLoading ? 'memuat data' : `${ihsgPositive ? '+' : ''}${(ihsg?.change ?? 0).toLocaleString('id-ID')}%`,
+      positive: ihsgPositive,
+    },
     { icon: Layers, label: 'Saham Dianalisa', value: loading ? '…' : valid.length, sub: 'Data real-time', positive: true },
     { icon: Activity, label: 'Signal BUY', value: loading ? '…' : buys.length, sub: 'Layak beli jangka panjang', positive: true },
     { icon: Wallet, label: 'Kandidat Baru', value: loading ? '…' : Math.max(0, buys.length - 1), sub: 'dari screener otomatis', positive: true },
@@ -31,7 +41,7 @@ export default function DashboardPage({ stocks, loading, onSelectStock }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="text-sm text-slate-500 mt-1"
+          className="text-sm text-ink-faint mt-1"
         >
           Analisa fundamental & teknikal untuk investasi jangka panjang
         </motion.p>
@@ -56,13 +66,16 @@ export default function DashboardPage({ stocks, loading, onSelectStock }) {
               >
                 <div
                   onClick={() => onSelectStock(s)}
-                  className="glass rounded-2xl p-5 cursor-pointer hover:border-emerald-500/25 transition-colors h-full"
+                  className="glass rounded-2xl p-5 cursor-pointer hover:border-up/25 transition-colors h-full"
                 >
-                  <p className="text-xs text-slate-500">{s.ticker}</p>
-                  <p className="mt-1 font-mono text-xl font-bold tracking-tight">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <StockLogo ticker={s.ticker} name={s.name} size="sm" />
+                    <p className="text-xs text-ink-faint truncate">{s.name}</p>
+                  </div>
+                  <p className="font-mono text-xl font-bold tracking-tight">
                     {s.price != null ? s.price.toLocaleString('id-ID') : '—'}
                   </p>
-                  <p className="font-mono text-xs text-emerald-400 mt-0.5">
+                  <p className="font-mono text-xs text-up mt-0.5">
                     ▲ +{s.change ?? 0}% · Skor {s.composite}
                   </p>
                 </div>
@@ -75,7 +88,7 @@ export default function DashboardPage({ stocks, loading, onSelectStock }) {
             transition={{ delay: 0.35, duration: 0.45 }}
             className="glass rounded-2xl p-5"
           >
-            <p className="text-xs text-slate-500 mb-3">Sektor Terbaik</p>
+            <p className="text-xs text-ink-faint mb-3">Sektor Terbaik</p>
             {(() => {
               const bySector = {}
               valid.forEach((s) => {
@@ -90,11 +103,11 @@ export default function DashboardPage({ stocks, loading, onSelectStock }) {
                 .slice(0, 3)
               return ranked.map((r, i) => (
                 <div key={r.name} className="flex items-center gap-2 py-1.5">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/10 border border-emerald-500/15 font-mono text-[10px] text-emerald-400">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-up/10 border border-up/15 font-mono text-[10px] text-up">
                     {i + 1}
                   </div>
-                  <span className="text-sm text-slate-300">{r.name}</span>
-                  <span className="ml-auto font-mono text-xs text-emerald-400">{r.avg} pts</span>
+                  <span className="text-sm text-ink/70">{r.name}</span>
+                  <span className="ml-auto font-mono text-xs text-up">{r.avg} pts</span>
                 </div>
               ))
             })()}
@@ -104,11 +117,16 @@ export default function DashboardPage({ stocks, loading, onSelectStock }) {
 
       {loading ? (
         <div className="glass rounded-2xl p-10 flex flex-col items-center gap-3">
-          <Loader2 size={20} className="animate-spin text-emerald-400" />
-          <p className="text-sm text-slate-400 font-mono">Mengambil data real dari market…</p>
+          <Loader2 size={20} className="animate-spin text-up" />
+          <p className="text-sm text-ink-soft font-mono">Mengambil data real dari market…</p>
         </div>
       ) : (
-        <StockTable stocks={top} onSelect={onSelectStock} />
+        <StockTable
+          stocks={top}
+          onSelect={onSelectStock}
+          onToggleFav={onToggleFav}
+          favorites={favorites}
+        />
       )}
     </div>
   )

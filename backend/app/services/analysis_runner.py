@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.services.market import fetch_batch_histories, fetch_history, fetch_info, get_price_snapshot
 from app.services.analysis import score_fundamental, score_technical, combined_signal
@@ -75,13 +76,13 @@ def get_stock_detail(ticker):
 
 
 def build_all():
-    """Fetch all prices in one batch, enrich with info, and return full analysis."""
+    """Fetch all prices in one batch, enrich with info (parallel), return full analysis."""
     histories = fetch_batch_histories(ALL_TICKERS, period="6mo")
-    results = []
-    for ticker in ALL_TICKERS:
+
+    def build(ticker):
         history = histories.get(ticker)
         if not history:
-            continue
+            return None
         try:
             info = fetch_info(ticker)
         except Exception:
@@ -90,7 +91,7 @@ def build_all():
         fund = score_fundamental(info)
         tech = score_technical(history)
         combo = combined_signal(fund, tech)
-        results.append({
+        return {
             "ticker": ticker,
             "name": info.get("name") or ticker,
             "sector": info.get("sector") or "Lainnya",
@@ -108,6 +109,14 @@ def build_all():
             "signal": combo["signal"],
             "composite": combo["composite"],
             "recommendation": info.get("recommendation"),
-        })
+        }
+
+    results = []
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futs = {pool.submit(build, t): t for t in ALL_TICKERS}
+        for fut in as_completed(futs):
+            item = fut.result()
+            if item:
+                results.append(item)
     results.sort(key=lambda s: (s["composite"] if s["composite"] is not None else -1), reverse=True)
     return results
