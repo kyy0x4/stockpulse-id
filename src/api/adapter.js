@@ -64,6 +64,7 @@ export function adaptStock(s) {
     sector: s.sector || 'Lainnya',
     website: s.website,
     logoUrl: s.logo_url,
+    logoFallback: s.logo_fallback,
     price: s.price,
     change: s.change,
     volume: s.volume,

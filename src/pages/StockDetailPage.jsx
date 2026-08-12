@@ -45,7 +45,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   const history = detail?.history || []
   const chartData =
     history.length > 0
-      ? history.slice(-30).map((h) => ({ date: h.date?.slice(5) || '—', close: h.close }))
+      ? history.slice(-90).map((h) => ({ date: h.date?.slice(5) || '—', close: h.close }))
       : mockSeries
 
   const price = detail?.price ?? stock.price
@@ -119,7 +119,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           <div className="mt-6 rounded-2xl border border-line bg-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 size={15} className="text-info" />
-              <p className="text-sm font-semibold">Performa Harga {history.length > 0 ? '(30 hari)' : '(10 hari)'}</p>
+              <p className="text-sm font-semibold">Performa Harga {history.length > 0 ? '(3 bulan)' : '(10 hari)'}</p>
               {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-ink-faint" />}
             </div>
             <div className="h-[180px]">

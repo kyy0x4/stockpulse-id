@@ -52,6 +52,7 @@ def analyze_stock(ticker, history=None, weekly=None, info=None, use_cache=True):
         "currency": info.get("currency") or "IDR",
         "website": info.get("website"),
         "logo_url": info.get("logo_url"),
+        "logo_fallback": info.get("logo_fallback"),
         "price": snapshot["price"] if snapshot else None,
         "change": snapshot["change"] if snapshot else None,
         "volume": snapshot["volume"] if snapshot else None,
@@ -74,11 +75,11 @@ def analyze_stock(ticker, history=None, weekly=None, info=None, use_cache=True):
 
 def get_stock_detail(ticker):
     code = ticker.upper()
-    history = fetch_history(code, period="6mo")
+    history = fetch_history(code, period="3mo")
     weekly = fetch_history(code, period=WEEKLY_PERIOD, interval=WEEKLY_INTERVAL)
     info = fetch_info(code)
     stock = analyze_stock(code, history=history, weekly=weekly, info=info, use_cache=False)
-    stock["history"] = history[-90:]
+    stock["history"] = history
     stock["fundamental"]["metrics"]["market_cap"] = stock["market_cap"]
     return stock
 
@@ -107,6 +108,7 @@ def build_all():
             "currency": info.get("currency") or "IDR",
             "website": info.get("website"),
             "logo_url": info.get("logo_url"),
+            "logo_fallback": info.get("logo_fallback"),
             "price": snapshot["price"] if snapshot else None,
             "change": snapshot["change"] if snapshot else None,
             "volume": snapshot["volume"] if snapshot else None,

@@ -31,24 +31,30 @@ const fonts = {
   lg: 'text-lg',
 }
 
-export default function StockLogo({ ticker, name, logoUrl, size = 'md', className = '' }) {
+export default function StockLogo({ ticker, name, logoUrl, logoFallback, size = 'md', className = '' }) {
   const key = (ticker || name || 'X').toUpperCase()
   const palette = palettes[hashCode(key) % palettes.length]
   const initials = key.slice(0, 2)
   const label = name ? `${name} (${ticker})` : ticker
-  const [imgFailed, setImgFailed] = useState(false)
   const box = `${sizes[size] || sizes.md} ${className}`
 
-  if (logoUrl && !imgFailed) {
+  const [failed, setFailed] = useState(0)
+
+  const src = failed === 0 ? logoUrl : logoFallback
+  const hasFallback = Boolean(logoFallback)
+  const keepTrying = failed === 0 || (hasFallback && failed === 1)
+
+  if (src && keepTrying) {
     return (
       <div className={`flex shrink-0 items-center justify-center bg-white ${box}`}>
         <img
-          src={logoUrl}
+          key={failed === 0 ? 'primary' : 'fallback'}
+          src={src}
           alt={label}
           title={label}
           loading="lazy"
           draggable={false}
-          onError={() => setImgFailed(true)}
+          onError={() => setFailed((f) => f + 1)}
           className="h-[62%] w-[62%] object-contain"
         />
       </div>

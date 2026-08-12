@@ -68,3 +68,13 @@ VALUE_STOCKS = [
 ]
 
 ALL_TICKERS = sorted(set(TICKERS + VALUE_STOCKS))
+
+# Override logo untuk ticker yang sumber defaultnya (tickerlogos + favicon Google)
+# gagal total. URL diverifikasi bisa diakses publik.
+LOGO_OVERRIDES = {
+    "TLKM": "https://icon.horse/icon/telkom.co.id",
+    "CPIN": "https://icon.horse/icon/cp.co.id",
+    "MLBI": "https://icon.horse/icon/multibintang.co.id",
+    "SMGR": "https://icon.horse/icon/sig.id",
+    "AMMN": "https://icon.horse/icon/amman.co.id",
+}

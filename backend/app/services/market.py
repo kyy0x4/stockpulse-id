@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from app.data.tickers import SECTOR_GROUP, ALL_TICKERS
+from app.data.tickers import SECTOR_GROUP, ALL_TICKERS, LOGO_OVERRIDES
 
 warnings.filterwarnings("ignore")
 
@@ -129,11 +129,13 @@ def fetch_info(ticker):
     sector = _clean(info.get("sector"))
     website = _clean(info.get("website"))
     domain = domain_from_website(website)
+    override = LOGO_OVERRIDES.get(ticker)
     return {
         "name": info.get("longName") or info.get("shortName") or ticker,
         "domain": domain,
         "website": website,
-        "logo_url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None,
+        "logo_url": override or (f"https://cdn.tickerlogos.com/{domain}" if domain else None),
+        "logo_fallback": f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None,
         "sector_raw": sector,
         "sector": SECTOR_GROUP.get(sector, sector or "Lainnya"),
         "currency": info.get("currency") or "IDR",
