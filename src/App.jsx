@@ -128,7 +128,7 @@ export default function App() {
                   />
                 )}
                 {page === 'market' && <MarketPage stocks={data} />}
-                {page === 'news' && <NewsPage />}
+                {page === 'news' && <NewsPage onSelectStock={setSelected} />}
               </Suspense>
             </PageWrapper>
           </AnimatePresence>

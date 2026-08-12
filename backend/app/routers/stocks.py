@@ -7,7 +7,7 @@ from app.services.market import fetch_info, fetch_ihsg
 from app.data.tickers import ALL_TICKERS, SECTOR_GROUPS
 from app.services.cache import get, set as cache_set
 from app.services.jsonutil import sanitize
-from app.services.news import fetch_news
+from app.services.news import COMPANY_NAMES, fetch_news
 import app.services.analysis_runner as runner
 
 router = APIRouter(prefix="/api", tags=["stocks"])
@@ -120,7 +120,23 @@ def news(category: str = "market", limit: int = Query(20, le=50)):
     cached = get(f"news:{category}")
     if cached is None:
         try:
-            cached = sanitize(fetch_news(category=category, limit=limit))
+            _items = fetch_news(category=category, limit=limit)
+            # Lengkapi ticker terkait dengan nama & sektor dari data master (cache screen:all)
+            master = {}
+            master_cached = get("screen:all")
+            if master_cached:
+                for s in master_cached:
+                    code = s.get("ticker")
+                    if code and s.get("name"):
+                        master[code] = {"name": s.get("name"), "sector": s.get("sector")}
+            cached = []
+            for it in _items:
+                related = []
+                for r in it.get("related", []):
+                    code = r["ticker"]
+                    meta = master.get(code) or {}
+                    related.append({"ticker": code, "name": meta.get("name"), "sector": meta.get("sector")})
+                cached.append({**it, "related": related})
         except Exception as exc:
             raise HTTPException(502, f"Gagal mengambil berita: {exc}")
         cache_set(f"news:{category}", cached, ttl=300)
