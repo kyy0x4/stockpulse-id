@@ -61,7 +61,6 @@ def upsert_quotes(items):
             "composite": i.get("composite"),
             "signal": i.get("signal"),
             "payload": sanitize({k: v for k, v in i.items() if k != "payload"}),
-            "updated_at": "now()",
         }
         for i in items
     ]
