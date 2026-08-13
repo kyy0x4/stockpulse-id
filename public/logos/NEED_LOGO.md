@@ -1,64 +1,30 @@
-# Logo yang Perlu Di-download Manual
+# Logo Saham (TradingView SVG)
 
-Logo di folder ini otomatis dipakai frontend dengan nama file **`{TICKER}.png`**
-(contoh: `public/logos/BBCA.png`). Logo berikut masih **placeholder generik**
-atau terlalu kecil — silakan download logo resmi tiap emiten dan simpan dengan
-nama `{TICKER}.png` (PNG, background transparan) ke folder ini.
+Logo di folder ini otomatis dipakai frontend dengan nama file **`{TICKER}.svg`**
+(contoh: `public/logos/BBCA.svg`, `public/logos/ANTM.svg`). Saat ini **798 emiten**
+dari 934 sudah punya logo resmi yang diambil dari **TradingView**
+(`s3-symbol-logo.tradingview.com`) via `backend/scripts_collect_logos.py`.
 
-Cara download:
-1. Buka situs resmi emiten (lihat kolom *Sumber*) atau cari di Google Images "logo {nama} png".
-2. Simpan sebagai `public/logos/{TICKER}.png`.
-3. Commit & deploy — logo langsung otomatis tampil di seluruh app.
+Frontend memakai logo lokal `/logos/{TICKER}.svg`; jika file tidak ada, app
+fallback ke logo remote override (konfigurasi `LOGO_OVERRIDES`) lalu inisial
+bergradasi — jadi app tidak pernah rusak tanpa logo.
 
-> Jika file `{TICKER}.png` tidak ada, app otomatis pakai logo remote konfigurasi
-> lalu fallback ke inisial bergradasi — jadi app tidak akan rusak tanpa logo.
+## Refresh logo (jika tutorial berubah / emiten baru)
 
-## Prioritas (logo placeholder / terlalu kecil)
-
-| Ticker | Nama Perusahaan | Sumber (domain situs resmi)            |
-| ------ | --------------- | -------------------------------------- |
-| AKRA   | AKR Corporindo  | akr.co.id                              |
-| AMMN   | Amman Mineral   | amman.co.id                            |
-| ASII   | Astra Intl      | astra.co.id                            |
-| BBNI   | Bank Negara Indonesia | bni.co.id                         |
-| BBRI   | Bank Rakyat Indonesia | bri.co.id                         |
-| BBTN   | Bank Tabungan Nasional | btn.co.id                         |
-| BJTM   | Bank Jatim       | bankjatim.co.id                        |
-| BRIS   | Bank Syariah Indonesia | bankbsi.co.id                      |
-| BSDE   | Bumi Serpong Damai | bsdcity.com                          |
-| BUMI   | Bumi Resources   | bumiresources.com                      |
-| ICBP   | Indofood CBP     | indofoodcbp.com                        |
-| INDF   | Indofood         | indofood.com                           |
-| INTP   | Indocement       | indocement.co.id                       |
-| ISAT   | Indosat Ooredoo  | indosatooredoo.com                     |
-| MAYA   | Maybank Indonesia | maybank.co.id                         |
-| PGAS   | Perusahaan Gas Negara | pgn.co.id                          |
-| SIDO   | Sido Muncul      | sidomuncul.co.id                       |
-| TOWR   | Sarana Menara Nusantara | towr.co.id                      |
-
-## Bonus (sudah bagus, tapi bisa diganti resmi)
-
-Berikut yang logonya sudah tampil tapi berasal dari favicon kecil — opsi untuk
-diganti logo resmi PNG resolusi tinggi:
-
-| Ticker | Nama Perusahaan |
-| ------ | --------------- |
-| BBCA   | Bank Central Asia |
-| BJBR   | Bank Jabar Banten |
-| TLKM   | Telkom Indonesia |
-| BMRI   | Bank Mandiri |
-| ADRO   | Adaro Energy |
-| GOTO   | GoTo Gojek Tokopedia |
-
-## Semua ticker (daftar lengkap)
-
-```
-ACES ADHI ADRO AGRO AKRA AMMN ANTM ARTO ASII BBCA BBNI BBRI BBTN BJBR BJTM
-BMRI BREN BRIS BRPT BSDE BTPS BUMI BYAN CLEO CPIN CTRA DCII DSSA ELSA ERAA
-EXCL GGRM GOOD GOTO HEAL HMSP HRUM ICBP INCO INDF INKP INTP ISAT JSMR KLBF
-MAPI MAYA MDKA MEDC MKPI MLBI MTEL MYOR NISP PANI PGAS PTBA PTPP PWON SIDO
-SMCB SMGR SMMA SMRA TINS TKIM TLKM TOWR TPIA ULTJ UNVR WIKA
+```bash
+cd backend
+.venv/bin/python scripts_collect_logos.py
 ```
 
-Script perbaruan otomatis (icon.horse) ada di `backend/scripts_collect_logos.py`.
-Menimpa file logo yang sudah di-download manual — jalankan hanya untuk refresh.
+Script ini memungut `logoid` seluruh emiten IDX (843) sekaligus dari API
+scanner TradingView, lalu mengunduh SVG-nya secara paralel ke `public/logos/`.
+Map `{ticker → logoid}` juga disimpan di `public/logos/_tradingview.json`
+sebagai referensi tanpa perlu hit API lagi.
+
+## Emiten tanpa logo di TradingView
+
+135 emiten tidak ada di TradingView (kebanyakan delisting/suspensi/daftar lama).
+Untuk menambah logo manual untuk salah satunya, simpan file `{TICKER}.svg` di
+folder ini (SVG/PNG, background transparan), commit & deploy.
+
+> Nama file HANYA boleh diakhiri `.svg` atau `.png` sesuai extension asli file.

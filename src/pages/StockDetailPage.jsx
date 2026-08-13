@@ -80,7 +80,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
         <div className="p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <StockLogo ticker={stock.ticker} name={name} size="lg" logoUrl={stock.logoUrl || `/logos/${stock.ticker}.png`} />
+              <StockLogo ticker={stock.ticker} name={name} size="lg" logoUrl={stock.logoUrl || `/logos/${stock.ticker}.svg`} />
               <div>
                 <div className="flex items-center gap-2.5">
                   <h2 className="text-xl font-bold tracking-tight">{stock.ticker}</h2>
