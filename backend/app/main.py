@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.stocks import router as stocks_router
+from app.routers.cron import router as cron_router
 
 app = FastAPI(
     title="StockPulse ID API",
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(stocks_router)
+app.include_router(cron_router)
 
 
 @app.get("/")

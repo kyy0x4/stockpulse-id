@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Search, TrendingUp, Menu, Sun, Moon, Newspaper, Loader2, X, ExternalLink, Clock } from 'lucide-react'
+import { Bell, Search, TrendingUp, Menu, Sun, Moon, Newspaper, Loader2, X, ExternalLink, Clock, Wifi } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useIHSG } from '../../hooks/useIHSG'
 import { useTheme } from '../../theme/ThemeProvider'
 import { api } from '../../api/client'
+import { supabase } from '../../api/supabase'
 
 const KEY = 'stockpulse-notif-seen'
 
@@ -103,6 +104,18 @@ export default function Topbar({ onSearch, query, onToggleSidebar }) {
       </div>
 
       <div className="ml-auto hidden md:flex items-center gap-3 text-xs">
+        <div
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${
+            supabase ? 'bg-up/10 text-up border-up/15' : 'bg-elevated text-ink-faint border-line-strong'
+          }`}
+          title={supabase ? 'Harga update otomatis tiap menit saat jam bursa' : 'Realtime tidak aktif (env Supabase belum diset)'}
+        >
+          <span className={`relative flex h-2 w-2 ${supabase ? '' : 'hidden'}`}>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-up opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-up" />
+          </span>
+          <Wifi size={13} className={supabase ? '' : 'opacity-40'} /> {supabase ? 'LIVE' : 'REFRESH'}
+        </div>
         <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${positive ? 'bg-up/10 text-up border-up/15' : 'bg-down/10 text-down border-down/15'}`}>
           <TrendingUp size={14} /> IHSG {(ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}{' '}
           <span className="font-mono">{positive ? '+' : ''}{(ihsg?.change ?? 0).toLocaleString('id-ID')}%</span>

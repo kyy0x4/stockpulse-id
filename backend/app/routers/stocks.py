@@ -61,6 +61,11 @@ def _warm_async():
     try:
         results = runner.build_all()
         cache_set("screen:all", sanitize(results), ttl=60 * 60 * 6)
+        try:
+            from app.services import supabase as db
+            db.upsert_quotes(results)
+        except Exception:
+            pass
     except Exception:
         pass
     finally:
@@ -88,8 +93,19 @@ def list_stocks(
     if cached is not None:
         results = [s for s in cached if _matches(s, sector, signal, min_score, q)]
     else:
-        results = runner.build_all()
-        cache_set("screen:all", sanitize(results), ttl=600)
+        # cold start: coba baca snapshot terakhir dari Supabase dulu (cepat),
+        # baru fallback build dari Yahoo.
+        results = None
+        try:
+            from app.services import supabase as db
+            quotes = db.fetch_quotes(limit=400)
+            if quotes:
+                results = [s for s in quotes if _matches(s, sector, signal, min_score, q)]
+        except Exception:
+            pass
+        if results is None:
+            results = runner.build_all()
+            cache_set("screen:all", sanitize(results), ttl=600)
 
     results.sort(key=lambda s: (s["composite"] if s["composite"] is not None else -1), reverse=True)
     body = {"total": len(results), "stocks": sanitize(results[:limit])}
