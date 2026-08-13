@@ -1,4 +1,4 @@
-"""Fetch berita pasar saham Indonesia dari RSS CNBC Indonesia + analisa dampak."""
+"""Fetch berita pasar saham Indonesia dari banyak RSS + analisa dampak."""
 
 import re
 import urllib.request
@@ -6,12 +6,26 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
+# Banyak sumber RSS gratis → jumlah berita jauh lebih banyak dari satu sumber.
+# Setiap kategori punya beberapa feed. "market" = pasar saham, "ekbis" = ekonomi bisnis umum.
 FEEDS = {
-    "market": "https://www.cnbcindonesia.com/market/rss",
-    "ekbis": "https://www.cnbcindonesia.com/ekbis/rss",
+    "market": [
+        "https://www.cnbcindonesia.com/market/rss",
+        "https://www.antaranews.com/rss/terkini",
+        "https://katadata.co.id/rss",
+    ],
+    "ekbis": [
+        "https://www.cnbcindonesia.com/market/rss",
+        "https://www.antaranews.com/rss/terkini",
+        "https://www.antaranews.com/rss/ekonomi",
+        "https://katadata.co.id/rss",
+    ],
 }
 
-UA = {"User-Agent": "Mozilla/5.0 (StockPulse ID; +https://stockpulse-id.vercel.app)"}
+UA = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0 Safari/537.36 StockPulseID"
+}
 
 # Mapping nama perusahaan → ticker (untuk mendeteksi saham yang disebut di berita)
 COMPANY_NAMES = {
@@ -101,8 +115,31 @@ NEGATIVE = [
 
 TICKER_RE = re.compile(r"\$([A-Z]{2,4})\b|saham\s+([A-Z]{2,4})\b")
 
+# Berapa banyak feed per kategori yang ditelusuri paralel
+MAX_FEEDS = 4
 
-def _fetch(url, timeout=15):
+# Kata kunci relevansi pasar/bisnis — feed umum (Antara/terkini) difilter
+RELEVANCE_KEYS = [
+    "saham", "ihsg", "bursa", "emiten", "rupiah", "bank sentral", "bank", "laba",
+    "untung", "ekonomi", "bisnis", "investasi", "obligasi", "sukuk", "dividen",
+    "nilai tukar", "inflasi", "suku bunga", "pasar modal", "ipo", "trading",
+    "reksa dana", "ekspor", "impor", "pajak", "anggaran", "perusahaan",
+    "korporasi", "manufaktur", "tambang", "minyak", "batu bara", "energi",
+    "sektoral", "telekomunikasi", "teknologi", "digital", "e-commerce",
+    "fintech", "aplikasi", "ritel", "ekspansi", "akuisisi", "kontrak",
+    "pengangguran", "tenaga kerja", "upah", "bumn", "kementerian",
+    "pemerintah", "fiskal", "moneter", "dolar", "emas", "komoditas",
+    "msci", "wall street", "nasdaq", "giias", "kendaraan listrik", "ev",
+    "smelter", "nikel", "timah", "sawit", "cpco", "steel", "baja",
+]
+
+
+def _relevant(title):
+    low = (title or "").lower()
+    return any(k in low for k in RELEVANCE_KEYS)
+
+
+def _fetch(url, timeout=18):
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as res:
         return res.read()
@@ -121,6 +158,33 @@ def _img_from_desc(text):
     if match:
         return match.group(1).replace("&amp;", "&")
     return None
+
+
+def _parse_feed(url):
+    """Baca satu RSS → daftar item mentah. Kembali [] jika gagal / bukan XML."""
+    try:
+        xml = _fetch(url)
+        root = ElementTree.fromstring(xml)
+    except Exception:
+        return []
+    out = []
+    for it in root.findall(".//item"):
+        title = (it.findtext("title") or "").strip()
+        if not title:
+            continue
+        link = (it.findtext("link") or "").strip()
+        desc = it.findtext("description") or ""
+        pub_date = _parse_dt(it.findtext("pubDate") or "")
+        enclosure = it.find("enclosure")
+        image = (enclosure.attrib.get("url") if enclosure is not None else None) or _img_from_desc(desc)
+        out.append({
+            "title": title,
+            "link": link,
+            "image": image,
+            "published": pub_date,
+            "description": re.sub(r"<[^>]+>", " ", desc)[:400],
+        })
+    return out
 
 
 def detect_tickers(text):
@@ -155,7 +219,7 @@ def analyze_sentiment(text):
 
 def analyze_news(item):
     """Tambahkan analisa sentimen + emiten terkait ke satu item berita."""
-    body = f"{item.get('title', '')} {item.get('description', '')} {item.get('summary', '')}"
+    body = f"{item.get('title', '')} {item.get('description', '')}"
     score, label = analyze_sentiment(body)
     ticks = detect_tickers(item.get("title", ""))
     return {
@@ -166,25 +230,36 @@ def analyze_news(item):
     }
 
 
-def fetch_news(category="market", limit=20):
-    url = FEEDS.get(category, FEEDS["market"])
-    xml = _fetch(url)
-    root = ElementTree.fromstring(xml)
-    items = root.findall(".//item")
+def fetch_news(category="market", limit=30):
+    """Gabungkan beberapa feed secara paralel, urut berdasarkan waktu."""
+    urls = FEEDS.get(category, FEEDS["market"])[:MAX_FEEDS]
 
-    out = []
-    for it in items[:limit]:
-        title = it.findtext("title") or ""
-        link = it.findtext("link") or ""
-        desc = it.findtext("description") or ""
-        pub_date = _parse_dt(it.findtext("pubDate") or "")
-        enclosure = it.find("enclosure")
-        image = (enclosure.attrib.get("url") if enclosure is not None else None) or _img_from_desc(desc)
-        out.append(analyze_news({
-            "title": title.strip(),
-            "link": link,
-            "image": image,
-            "published": pub_date,
-            "description": desc,
-        }))
-    return out
+    import concurrent.futures as cf
+    merged = []
+    with cf.ThreadPoolExecutor(max_workers=len(urls)) as ex:
+        for items in ex.map(_parse_feed, urls):
+            merged.extend(items)
+
+    # Filter relevansi: berita non-market (resep, tips umum) dikeluarkan
+    filtered = [it for it in merged if _relevant(it["title"])]
+
+    # dedup berdasarkan judul (case-insensitive)
+    seen = set()
+    unique = []
+    for it in filtered:
+        key = it["title"].lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(it)
+
+    # urutkan: berita dengan tanggal lebih baru didahulukan
+    def _sort_key(it):
+        dt = it.get("published")
+        try:
+            return datetime.fromisoformat(dt.replace("Z", "+00:00")).timestamp()
+        except Exception:
+            return 0
+
+    unique.sort(key=_sort_key, reverse=True)
+    return [analyze_news(it) for it in unique[:limit]]
