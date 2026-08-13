@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
+from app.data.tickers import FULL_EMITEN
+
 # Banyak sumber RSS gratis → jumlah berita jauh lebih banyak dari satu sumber.
 # Setiap kategori punya beberapa feed. "market" = pasar saham, "ekbis" = ekonomi bisnis umum.
 FEEDS = {
@@ -113,7 +115,8 @@ NEGATIVE = [
     "menurunkan", "tertekan", "tobat", "terpuruk", "koreksi", "penjualan", "harga minyak turun",
 ]
 
-TICKER_RE = re.compile(r"\$([A-Z]{2,4})\b|saham\s+([A-Z]{2,4})\b")
+TICKER_RE = re.compile(r"\$([A-Z]{2,4})\b|saham\s+([A-Z]{2,4})\b", re.IGNORECASE)
+UPPER_WORD_RE = re.compile(r"\b[A-Z]{2,4}\b")
 
 # Berapa banyak feed per kategori yang ditelusuri paralel
 MAX_FEEDS = 4
@@ -188,15 +191,26 @@ def _parse_feed(url):
 
 
 def detect_tickers(text):
-    """Temukan ticker & nama perusahaan yang disebut dalam text."""
+    """Temukan ticker & nama perusahaan yang disebut dalam text.
+
+    Strategi: cocokkan kode di dalam whitelist emiten asli IDX (FULL_EMITEN)
+    untuk menghindari false positive seperti IHSG/MSCI/BANK.
+    """
     low = (text or "").lower()
     found = set()
+    # 1) kode dengan konteks eksplisit: $BBCA atau "saham BBCA"
     for m in TICKER_RE.finditer(text or ""):
         code = (m.group(1) or m.group(2) or "").upper()
-        if len(code) >= 2:
+        if len(code) >= 2 and code in FULL_EMITEN:
             found.add(code)
+    # 2) kata uppercase 2-4 huruf yang memang emiten terdaftar
+    for m in UPPER_WORD_RE.finditer(text or ""):
+        code = m.group(0)
+        if code in FULL_EMITEN:
+            found.add(code)
+    # 3) nama perusahaan / alias
     for alias, code in COMPANY_NAMES.items():
-        if alias in low:
+        if alias in low and code in FULL_EMITEN:
             found.add(code)
     return sorted(found)
 
@@ -221,7 +235,7 @@ def analyze_news(item):
     """Tambahkan analisa sentimen + emiten terkait ke satu item berita."""
     body = f"{item.get('title', '')} {item.get('description', '')}"
     score, label = analyze_sentiment(body)
-    ticks = detect_tickers(item.get("title", ""))
+    ticks = detect_tickers(body)
     return {
         **item,
         "sentiment": label,

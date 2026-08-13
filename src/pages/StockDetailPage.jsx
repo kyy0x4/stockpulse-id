@@ -5,7 +5,7 @@ import ScoreRing from '../components/ui/ScoreRing'
 import ProgressBar from '../components/ui/ProgressBar'
 import StockLogo from '../components/ui/StockLogo'
 import PriceTrendChart from '../components/charts/PriceTrendChart'
-import { X, Star, TrendingUp, TrendingDown, Clock, BarChart3, PieChart, Loader2 } from 'lucide-react'
+import { X, Star, TrendingUp, TrendingDown, Clock, BarChart3, PieChart, Calendar, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
 
 const mockSeries = [
@@ -199,6 +199,46 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
               </p>
             </div>
             <ScoreRing value={stock.composite ?? 0} size={64} stroke={6} />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-line bg-card p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar size={15} className="text-warning" />
+              <h3 className="text-sm font-semibold">Seasonality (Pola Musiman)</h3>
+              {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-ink-faint" />}
+            </div>
+            {detail?.seasonality?.summary ? (
+              <>
+                <p className="text-xs text-ink-soft leading-relaxed mb-4">{detail.seasonality.summary}</p>
+                <div className="grid grid-cols-12 gap-1.5">
+                  {detail.seasonality.monthly.map((m) => {
+                    const avg = m.avg_return ?? 0
+                    const h = Math.min(Math.max(Math.abs(avg) / 4, 4), 30)
+                    const positive = avg >= 0
+                    return (
+                      <div key={m.month} className="flex flex-col items-center gap-1" title={`${m.full}: ${avg >= 0 ? '+' : ''}${avg}% (positif ${m.prob_positive ?? '—'}%)`}>
+                        <span className="font-mono text-[9px] text-ink-faint">{m.label}</span>
+                        <div className="flex h-[34px] w-full items-center justify-center rounded-md bg-surface">
+                          <div
+                            className="w-full rounded-md"
+                            style={{
+                              height: `${h}px`,
+                              backgroundColor: avg === 0 ? 'var(--color-line)' : positive ? 'var(--color-up)' : 'var(--color-down)',
+                              opacity: 0.85,
+                            }}
+                          />
+                        </div>
+                        <span className={`font-mono text-[9px] ${positive ? 'text-up' : 'text-down'}`}>
+                          {avg >= 0 ? '+' : ''}{avg}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-ink-faint">Analisa musim belum tersedia untuk saham ini.</p>
+            )}
           </div>
         </div>
       </motion.div>

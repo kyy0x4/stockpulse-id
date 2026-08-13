@@ -195,10 +195,15 @@ export default function NewsPage({ onSelectStock }) {
                       <button
                         key={r.ticker}
                         onClick={() => onSelectStock?.({ ticker: r.ticker, name: r.name, sector: r.sector })}
-                        className="rounded-full border border-line-strong bg-card px-2.5 py-1 text-[11px] text-ink-soft hover:text-up hover:border-up/30 transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 rounded-full border border-line-strong bg-card px-2.5 py-1 text-[11px] text-ink-soft hover:text-up hover:border-up/30 transition-colors cursor-pointer"
                         title={r.name || r.ticker}
                       >
                         {r.ticker}
+                        {r.change != null && (
+                          <span className={`font-mono text-[10px] ${r.change >= 0 ? 'text-up' : 'text-down'}`}>
+                            {r.change >= 0 ? '+' : ''}{r.change}%
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>

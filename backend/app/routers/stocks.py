@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from app.services.market import fetch_info, fetch_ihsg
-from app.data.tickers import ALL_TICKERS, SECTOR_GROUPS
+from app.data.tickers import ALL_TICKERS, FULL_EMITEN, SECTOR_GROUPS
 from app.services.cache import get, set as cache_set
 from app.services.jsonutil import sanitize
 from app.services.news import COMPANY_NAMES, fetch_news
@@ -69,7 +69,11 @@ def _warm_async():
 
 @router.get("/tickers")
 def tickers():
-    return {"total": len(ALL_TICKERS), "tickers": ALL_TICKERS, "sectors": SECTOR_GROUPS}
+    all_emiten = [
+        {"ticker": code, "name": meta["name"], "sector": meta["sector"]}
+        for code, meta in sorted(FULL_EMITEN.items())
+    ]
+    return {"total": len(all_emiten), "tickers": all_emiten, "sectors": SECTOR_GROUPS}
 
 
 @router.get("/stocks")
@@ -78,7 +82,7 @@ def list_stocks(
     signal: Optional[str] = None,
     min_score: Optional[int] = None,
     q: Optional[str] = None,
-    limit: int = Query(30, le=100),
+    limit: int = Query(240, le=300),
 ):
     cached = get("screen:all")
     if cached is not None:
@@ -107,7 +111,7 @@ def _matches(s, sector, signal, min_score, q):
 @router.get("/stocks/{ticker}")
 def stock_detail(ticker: str):
     code = ticker.upper()
-    if code not in ALL_TICKERS:
+    if code not in ALL_TICKERS and code not in FULL_EMITEN:
         raise HTTPException(404, f"Ticker {code} tidak ditemukan")
     try:
         return sanitize(runner.get_stock_detail(code))
@@ -128,14 +132,27 @@ def news(category: str = "market", limit: int = Query(20, le=50)):
                 for s in master_cached:
                     code = s.get("ticker")
                     if code and s.get("name"):
-                        master[code] = {"name": s.get("name"), "sector": s.get("sector")}
+                        master[code] = {
+                            "name": s.get("name"),
+                            "sector": s.get("sector"),
+                            "price": s.get("price"),
+                            "change": s.get("change"),
+                        }
+            # isi nama/sektor dari master statis utk emiten non-core (934)
             cached = []
             for it in _items:
                 related = []
                 for r in it.get("related", []):
                     code = r["ticker"]
                     meta = master.get(code) or {}
-                    related.append({"ticker": code, "name": meta.get("name"), "sector": meta.get("sector")})
+                    em = FULL_EMITEN.get(code) or {}
+                    related.append({
+                        "ticker": code,
+                        "name": meta.get("name") or em.get("name"),
+                        "sector": meta.get("sector") or em.get("sector"),
+                        "price": meta.get("price"),
+                        "change": meta.get("change"),
+                    })
                 cached.append({**it, "related": related})
         except Exception as exc:
             raise HTTPException(502, f"Gagal mengambil berita: {exc}")

@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.services.market import fetch_batch_histories, fetch_history, fetch_info, get_price_snapshot
 from app.services.analysis import score_fundamental, score_technical, combined_signal
+from app.services.seasonality import compute_seasonality
 from app.services.cache import get, set as cache_set
 from app.data.tickers import ALL_TICKERS
 
@@ -77,9 +78,11 @@ def get_stock_detail(ticker):
     code = ticker.upper()
     history = fetch_history(code, period="3mo")
     weekly = fetch_history(code, period=WEEKLY_PERIOD, interval=WEEKLY_INTERVAL)
+    yearly = fetch_history(code, period="5y")
     info = fetch_info(code)
     stock = analyze_stock(code, history=history, weekly=weekly, info=info, use_cache=False)
     stock["history"] = history
+    stock["seasonality"] = compute_seasonality(yearly)
     stock["fundamental"]["metrics"]["market_cap"] = stock["market_cap"]
     return stock
 

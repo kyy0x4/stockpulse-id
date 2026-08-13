@@ -8,7 +8,7 @@ async function get(path) {
 
 export const api = {
   list(sector, signal, minScore, q) {
-    const params = new URLSearchParams({ limit: '100' })
+    const params = new URLSearchParams({ limit: '300' })
     if (sector && sector !== 'Semua') params.set('sector', sector)
     if (signal && signal !== 'Semua') params.set('signal', signal)
     if (minScore) params.set('min_score', String(minScore))

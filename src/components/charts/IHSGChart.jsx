@@ -37,7 +37,13 @@ export default function IHSGChart({ history }) {
           tick={{ fill: p.axis, fontSize: 11, fontFamily: 'Fira Code' }}
           axisLine={false}
           tickLine={false}
-          width={44}
+          width={56}
+          tickFormatter={(v) => {
+            if (v >= 1e9) return `${(v / 1e9).toFixed(1)} M`
+            if (v >= 1e6) return `${(v / 1e6).toFixed(1)} jt`
+            if (v >= 1e3) return `${(v / 1e3).toFixed(0)} rb`
+            return String(v)
+          }}
         />
         <Tooltip
           contentStyle={{
