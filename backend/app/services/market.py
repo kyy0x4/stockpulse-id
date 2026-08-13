@@ -7,6 +7,7 @@ import pandas as pd
 import yfinance as yf
 
 from app.data.tickers import SECTOR_GROUP, ALL_TICKERS, LOGO_OVERRIDES
+from app.services.cache import get as cache_get, set as cache_set
 
 warnings.filterwarnings("ignore")
 
@@ -22,16 +23,28 @@ def domain_from_website(url):
         return None
 
 
-def fetch_batch_histories(tickers=None, period="6mo", interval="1d"):
-    """Download price history for many tickers in a single request."""
-    codes = tickers or ALL_TICKERS
+def fetch_batch_histories(tickers=None, period="6mo", interval="1d", ttl=600):
+    """Download price history for many tickers in a single request.
+
+    Hasil di-cache selama `ttl` (default 10 mnt) — harga pasar cepat berubah,
+    tapi untuk screener snapshot 10 menit sudah cukup dan mencegah re-download
+    240 ticker saat /warm & /stocks dipanggil beruntun.
+    """
+    codes = list(tickers or ALL_TICKERS)
+    key = f"bh:{period}:{interval}"
+    cached = cache_get(key)
+    if cached is not None:
+        # kembalikan subset; semua kode dimuat sekali, kode baru = cache miss
+        return {c: cached[c] for c in codes if c in cached}
+
+    t0 = time.time()
     yahoo = [f"{t}.JK" for t in codes]
     frames = yf.download(tickers=yahoo, period=period, interval=interval, auto_adjust=True, actions=False, group_by="ticker", threads=True)
     out = {}
     for code in codes:
-        key = f"{code}.JK"
+        key_t = f"{code}.JK"
         try:
-            df = frames[key].dropna(how="all")
+            df = frames[key_t].dropna(how="all")
             if df.empty:
                 continue
             df = df.reset_index()
@@ -49,6 +62,8 @@ def fetch_batch_histories(tickers=None, period="6mo", interval="1d"):
             out[code] = rows
         except Exception:
             continue
+    if out:
+        cache_set(key, out, ttl=ttl)
     return out
 
 
@@ -123,7 +138,17 @@ def fetch_ihsg(period="1y", interval="1d"):
     }
 
 
-def fetch_info(ticker):
+def fetch_info(ticker, ttl=6 * 3600):
+    """Fundamental info per ticker, dicache 6 jam (tidak berubah intraday).
+
+    Harga/change/volume tetap fresh dari history batch; hanya data fundamental
+    (PER, PBV, ROE, market cap, ...) yang di-cache supaya build_all cepat.
+    """
+    key = f"info:{ticker}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
     t = yf.Ticker(f"{ticker}.JK")
     info = t.info
     sector = _clean(info.get("sector"))
@@ -132,7 +157,7 @@ def fetch_info(ticker):
     override = LOGO_OVERRIDES.get(ticker)
     icon_horse = f"https://icon.horse/icon/{domain}" if domain else None
     google_fav = f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None
-    return {
+    result = {
         "name": info.get("longName") or info.get("shortName") or ticker,
         "domain": domain,
         "website": website,
@@ -162,6 +187,8 @@ def fetch_info(ticker):
         "number_of_analysts": _clean(info.get("numberOfAnalystOpinions")),
         "audit_raw": info,
     }
+    cache_set(key, result, ttl=ttl)
+    return result
 
 
 def get_price_snapshot(history):
