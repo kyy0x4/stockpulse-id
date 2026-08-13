@@ -26,7 +26,7 @@ function exportCSV(stocks) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `stockpulse-screener-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `plotfinansial-screener-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -53,7 +53,7 @@ export default function ScreenerPage({ stocks, onSelectStock, onToggleFav, favor
           transition={{ duration: 0.4 }}
           className="text-2xl font-bold tracking-tight"
         >
-          Stock <span className="text-gradient">Screener</span>
+          Plot <span className="text-gradient">Screener</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 12 }}

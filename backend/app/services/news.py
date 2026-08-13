@@ -26,7 +26,7 @@ FEEDS = {
 
 UA = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0 Safari/537.36 StockPulseID"
+    "(KHTML, like Gecko) Chrome/120.0 Safari/537.36 PlotFinansialID"
 }
 
 # Mapping nama perusahaan → ticker (untuk mendeteksi saham yang disebut di berita)

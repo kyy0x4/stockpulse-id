@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Card from '../ui/Card'
 import { SlidersHorizontal, RotateCcw, BookmarkPlus, Bookmark, Trash2 } from 'lucide-react'
+import { api } from '../../api/client'
 
-const sectors = ['Semua', 'Perbankan', 'Konsumen', 'Tambang', 'Energi', 'Telekomunikasi', 'Infrastruktur', 'Industri', 'Teknologi']
+const DEFAULT_SECTORS = ['Semua', 'Perbankan', 'Konsumen', 'Tambang', 'Energi', 'Telekomunikasi', 'Infrastruktur', 'Industri', 'Teknologi']
 
 const PRESETS_KEY = 'stockpulse-screener-presets'
 
@@ -24,6 +25,19 @@ export default function ScreenerFilters({ onApply }) {
   const [signal, setSignal] = useState('Semua')
   const [name, setName] = useState('')
   const [presets, setPresets] = useState(loadPresets)
+  const [sectors, setSectors] = useState(DEFAULT_SECTORS)
+
+  useEffect(() => {
+    let alive = true
+    api.tickers()
+      .then((res) => {
+        if (!alive) return
+        const list = res.sectors || []
+        if (Array.isArray(list) && list.length) setSectors(['Semua', ...list])
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   const apply = (extra = {}) => onApply({ query, sector, minScore, signal, ...extra })
 

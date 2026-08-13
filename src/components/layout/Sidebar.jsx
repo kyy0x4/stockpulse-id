@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   SlidersHorizontal,
@@ -11,17 +12,21 @@ import {
 } from 'lucide-react'
 
 const nav = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'screener', label: 'Screener', icon: SlidersHorizontal },
-  { id: 'watchlist', label: 'Watchlist', icon: Star },
-  { id: 'market', label: 'Pasar', icon: Activity },
-  { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { id: 'screener', label: 'Screener', path: '/screener', icon: SlidersHorizontal },
+  { id: 'watchlist', label: 'Watchlist', path: '/watchlist', icon: Star },
+  { id: 'market', label: 'Pasar', path: '/market', icon: Activity },
+  { id: 'news', label: 'News', path: '/news', icon: Newspaper },
 ]
 
 export default function Sidebar({ active, onNavigate, open = false, onClose }) {
-  const navigate = (id) => {
-    onNavigate(id)
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const handleNavigate = (item) => {
+    onNavigate(item.id)
     onClose?.()
+    if (item.path) navigate(item.path)
   }
 
   return (
@@ -50,7 +55,7 @@ export default function Sidebar({ active, onNavigate, open = false, onClose }) {
           </div>
           <div className="leading-tight">
             <p className="text-sm font-bold tracking-tight">
-              Stock<span className="text-accent">Pulse</span>
+              Plot<span className="text-accent">Finansial</span>
             </p>
             <p className="text-[10px] text-ink-faint font-mono">ID · Long Term</p>
           </div>
@@ -65,11 +70,11 @@ export default function Sidebar({ active, onNavigate, open = false, onClose }) {
 
         <nav className="flex-1 px-3 py-4 space-y-1">
           {nav.map((item) => {
-            const activeTab = active === item.id
+            const activeTab = active === item.id || location.pathname === item.path
             return (
               <button
                 key={item.id}
-                onClick={() => navigate(item.id)}
+                onClick={() => handleNavigate(item)}
                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 cursor-pointer ${
                   activeTab ? 'text-ink' : 'text-ink-soft hover:text-ink hover:bg-elevated'
                 }`}
@@ -93,7 +98,7 @@ export default function Sidebar({ active, onNavigate, open = false, onClose }) {
 
         <div className="p-3 border-t border-line">
           <button
-            onClick={() => navigate('settings')}
+            onClick={() => navigate('/')}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-soft hover:text-ink hover:bg-elevated transition-colors cursor-pointer"
           >
             <Settings size={18} />

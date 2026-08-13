@@ -1,4 +1,4 @@
-# StockPulse ID
+# PlotFinansial
 
 Platform web untuk analisa fundamental & teknikal saham Indonesia untuk investasi jangka panjang.
 

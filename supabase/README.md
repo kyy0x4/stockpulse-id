@@ -1,4 +1,4 @@
-# StockPulse ID — Panduan Setup Supabase Realtime
+# PlotFinansial — Panduan Setup Supabase Realtime
 
 Arsitektur near-realtime gratis:
 

@@ -1,4 +1,4 @@
--- StockPulse ID — schema realtime harga saham
+-- PlotFinansial — schema realtime harga saham
 -- Jalankan di Supabase SQL Editor (Dashboard → SQL → New query)
 
 create extension if not exists "pgcrypto";

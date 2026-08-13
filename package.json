@@ -1,5 +1,5 @@
 {
-  "name": "stockpulse",
+  "name": "plotfinansial",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,6 +15,7 @@
     "lucide-react": "^1.30.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ from app.routers.stocks import router as stocks_router
 from app.routers.cron import router as cron_router
 
 app = FastAPI(
-    title="StockPulse ID API",
+    title="PlotFinansial API",
     description="Analisa fundamental & teknikal saham Indonesia",
     version="0.1.0",
 )
@@ -23,4 +23,4 @@ app.include_router(cron_router)
 
 @app.get("/")
 def root():
-    return {"name": "StockPulse ID API", "docs": "/docs"}
+    return {"name": "PlotFinansial API", "docs": "/docs"}

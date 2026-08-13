@@ -1,1 +1,1 @@
-"""StockPulse ID backend package."""
+"""PlotFinansial backend package."""

@@ -19,7 +19,7 @@ MAP_JSON = os.path.join(OUT_DIR, "_tradingview.json")
 SCAN_URL = "https://scanner.tradingview.com/indonesia/scan"
 LOGO_BASE = "https://s3-symbol-logo.tradingview.com"
 UA = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) StockPulse-ID/1.0",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) PlotFinansial/1.0",
     "Content-Type": "application/json",
 }
 

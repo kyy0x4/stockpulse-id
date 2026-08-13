@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
@@ -48,27 +49,16 @@ function PageFallback() {
   )
 }
 
-export default function App() {
-  const [page, setPage] = useState('dashboard')
+function Shell({ favorites, toggleFav, selected, setSelected }) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [favorites, setFavorites] = useState(loadFavorites)
   const { stocks, loading, usingMock } = useStocks()
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(FAV_KEY, JSON.stringify(favorites))
-    } catch {
-      /* ignore */
-    }
-  }, [favorites])
+  const page = location.pathname.replace(/^\//, '') || 'dashboard'
 
-  const toggleFav = (ticker) => {
-    setFavorites((prev) =>
-      prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
-    )
-  }
+  const navigateTo = (id) => navigate(id === 'dashboard' ? '/' : `/${id}`)
 
   const data = stocks.length ? stocks : mockStocks
 
@@ -80,7 +70,7 @@ export default function App() {
 
       <Sidebar
         active={page}
-        onNavigate={setPage}
+        onNavigate={navigateTo}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -100,35 +90,38 @@ export default function App() {
           </div>
 
           <AnimatePresence mode="wait">
-            <PageWrapper key={page}>
+            <PageWrapper key={location.pathname}>
               <Suspense fallback={<PageFallback />}>
-                {page === 'dashboard' && (
-                  <DashboardPage
+                <Routes location={location}>
+                  <Route path="/" element={<DashboardPage
                     stocks={data}
                     loading={loading}
                     onSelectStock={setSelected}
                     onToggleFav={toggleFav}
                     favorites={favorites}
-                  />
-                )}
-                {page === 'screener' && (
-                  <ScreenerPage
+                  />} />
+                  <Route path="/screener" element={<ScreenerPage
                     stocks={data}
                     onSelectStock={setSelected}
                     onToggleFav={toggleFav}
                     favorites={favorites}
-                  />
-                )}
-                {page === 'watchlist' && (
-                  <WatchlistPage
+                  />} />
+                  <Route path="/watchlist" element={<WatchlistPage
                     favorites={favorites}
                     stocks={data}
                     onSelectStock={setSelected}
                     onToggleFav={toggleFav}
-                  />
-                )}
-                {page === 'market' && <MarketPage stocks={data} />}
-                {page === 'news' && <NewsPage onSelectStock={setSelected} />}
+                  />} />
+                  <Route path="/market" element={<MarketPage stocks={data} />} />
+                  <Route path="/news" element={<NewsPage onSelectStock={setSelected} />} />
+                  <Route path="*" element={<DashboardPage
+                    stocks={data}
+                    loading={loading}
+                    onSelectStock={setSelected}
+                    onToggleFav={toggleFav}
+                    favorites={favorites}
+                  />} />
+                </Routes>
               </Suspense>
             </PageWrapper>
           </AnimatePresence>
@@ -146,5 +139,30 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+export default function App() {
+  const [favorites, setFavorites] = useState(loadFavorites)
+  const [selected, setSelected] = useState(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(favorites))
+    } catch {
+      /* ignore */
+    }
+  }, [favorites])
+
+  const toggleFav = (ticker) => {
+    setFavorites((prev) =>
+      prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
+    )
+  }
+
+  return (
+    <BrowserRouter>
+      <Shell favorites={favorites} toggleFav={toggleFav} selected={selected} setSelected={setSelected} />
+    </BrowserRouter>
   )
 }
