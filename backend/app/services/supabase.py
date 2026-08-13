@@ -16,11 +16,23 @@ from app.services.jsonutil import sanitize
 URL = os.getenv("SUPABASE_URL", "").strip()
 SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 
+SUPABASE_CLIENT = None
+if URL and SERVICE_KEY:
+    try:
+        from supabase import create_client as _create
+
+        SUPABASE_CLIENT = _create(URL, SERVICE_KEY)
+    except Exception as exc:
+        print(f"[supabase] init client gagal: {exc}")
+
 
 def _client():
-    from supabase import create_client
+    global SUPABASE_CLIENT
+    if SUPABASE_CLIENT is None:
+        from supabase import create_client
 
-    return create_client(URL, SERVICE_KEY)
+        SUPABASE_CLIENT = create_client(URL, SERVICE_KEY)
+    return SUPABASE_CLIENT
 
 
 def available():

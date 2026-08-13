@@ -112,10 +112,22 @@ def cron_eod():
 @router.get("/status")
 def cron_status():
     dt = _wib_now()
+    quotes_count = 0
+    history_count = 0
+    try:
+        if db.available():
+            quotes_count = len(db.fetch_quotes(limit=10000))
+            from app.services.supabase import SUPABASE_CLIENT
+            q = SUPABASE_CLIENT.table("stock_history").select("ticker", count="exact").limit(0)
+            res = q.execute()
+            history_count = (res.count or 0) if res else 0
+    except Exception:
+        pass
     return {
         "wib": dt.isoformat(),
         "weekday": _is_weekday(dt),
         "in_market_hours": _is_weekday(dt) and STOCK_FULL_START <= _position(dt) <= STOCK_FULL_END,
         "supabase": bool(db.available()),
-        "quotes_in_supabase": (db.fetch_quotes(1) is not None),
+        "quotes_in_supabase": quotes_count,
+        "history_rows_in_supabase": history_count,
     }
