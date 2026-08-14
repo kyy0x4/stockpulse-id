@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Newspaper, Rss, Loader2, Clock, TrendingUp, TrendingDown, Activity } from 'lucide-react'
-import Badge from '../components/ui/Badge'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import Card from '../components/ui/Card'
+import { PH, viewStock } from '../components/ui/DashboardComponents'
 
-const CATEGORIES = [
+const CATS = [
   { id: 'market', label: 'Market & Saham' },
   { id: 'ekbis', label: 'Ekonomi & Bisnis' },
 ]
@@ -18,203 +15,156 @@ function timeAgo(iso) {
   if (mins < 60) return `${mins} mnt`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs} jam`
-  const days = Math.floor(hrs / 24)
-  return `${days} hari`
+  return `${Math.floor(hrs / 24)} hari`
 }
 
-function sentimentBadge(label) {
-  if (label === 'positif') return <Badge tone="green" dot>Bullish</Badge>
-  if (label === 'negatif') return <Badge tone="red" dot>Bearish</Badge>
-  return <Badge tone="neutral" dot>Netral</Badge>
+const sent = (s) => {
+  const v = String(s || '').toLowerCase()
+  if (v === 'positif' || v === 'positive') return 'positive'
+  if (v === 'negatif' || v === 'negative') return 'negative'
+  return 'neutral'
 }
 
-function impactLabel(label) {
-  if (label === 'positif') return { text: 'Tendensi menguatkan IHSG', Icon: TrendingUp, cls: 'text-up' }
-  if (label === 'negatif') return { text: 'Tendensi menekan IHSG', Icon: TrendingDown, cls: 'text-down' }
-  return { text: 'Dampak terbatas ke IHSG', Icon: Activity, cls: 'text-ink-soft' }
-}
+const sentCol = (s) => s === 'positive' ? 'var(--up)' : s === 'negative' ? 'var(--down)' : 'var(--text3)'
 
-export default function NewsPage({ onSelectStock }) {
-  const [category, setCategory] = useState('market')
+export default function NewsPage({ onSelectStock, stocks = [] }) {
+  const [cat, setCat] = useState('market')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const openStock = (ticker) => {
+    if (!ticker) return
+    const found = stocks.find(s => s.ticker === ticker)
+    if (found) onSelectStock?.(viewStock(found))
+  }
+
+  const impactText = (item) => {
+    const impact = item?.impact || {}
+    const related = item?.related || []
+    const names = related.map((r) => r.ticker).filter(Boolean).slice(0, 4)
+    return {
+      headline: impact.ihsg || 'netral untuk IHSG',
+      move: impact.market_move || 'dampaknya terbatas',
+      strength: impact.strength ?? 0,
+      direction: impact.direction || sent(item.sentiment),
+      scopeLabel: impact.scope_label || 'UMUM',
+      event: impact.event || null,
+      related: names,
+    }
+  }
 
   useEffect(() => {
     let alive = true
     setLoading(true)
     setError(null)
-    api.news(category, 20)
+    api.news(cat, 30)
       .then((res) => alive && setItems(res.items || []))
       .catch((err) => alive && setError(err.message))
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
-  }, [category])
-
-  const summary = useMemo(() => {
-    const b = items.filter((n) => n.sentiment === 'positif').length
-    const be = items.filter((n) => n.sentiment === 'negatif').length
-    const net = b - be
-    const netral = items.length - b - be
-    return { bullish: b, bearish: be, netral, net }
-  }, [items])
+  }, [cat])
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-2xl font-bold tracking-tight"
-          >
-            Market <span className="text-gradient">News</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05 }}
-            className="text-sm text-ink-faint mt-1"
-          >
-            Berita ekonomi & pasar saham Indonesia · analisa sentimen & saham terkait
-          </motion.p>
-        </div>
+    <div className="fade-up" style={{ padding:'20px 16px 28px' }}>
+      <PH eyebrow="BERITA & ANALISIS PASAR" title="MARKET NEWS" />
 
-        <div className="flex items-center gap-2 rounded-xl border border-line-strong bg-card p-1">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setCategory(c.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
-                category === c.id
-                  ? 'bg-gradient-to-r from-up/15 to-teal-500/10 text-ink border border-up/25'
-                  : 'text-ink-soft hover:text-ink'
-              }`}
-            >
-              <Rss size={13} className={category === c.id ? 'text-up' : ''} />
-              {c.label}
-            </button>
-          ))}
-        </div>
+      <div style={{ display:'flex', gap:1, flexWrap:'wrap', marginBottom:24, background:'var(--border)' }}>
+        {CATS.map(c => (
+          <button key={c.id} onClick={() => setCat(c.id)} className={`fbtn ${cat === c.id ? 'active' : ''}`}>{c.label}</button>
+        ))}
       </div>
 
       {loading && (
-        <div className="glass rounded-2xl p-10 flex flex-col items-center gap-3">
-          <Loader2 size={20} className="animate-spin text-up" />
-          <p className="text-sm text-ink-soft font-mono">Mengambil berita terbaru…</p>
+        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text2)', letterSpacing:'0.08em' }}>MENGAMBIL BERITA TERBARU…</span>
         </div>
       )}
 
       {error && !loading && (
-        <div className="glass rounded-2xl p-10 text-center">
-          <Newspaper size={22} className="mx-auto text-warning mb-3" />
-          <p className="text-sm text-ink-soft">Berita gagal dimuat: {error}</p>
+        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--down)', letterSpacing:'0.08em' }}>BERITA GAGAL DIMUAT: {error}</span>
+        </div>
+      )}
+
+      {!loading && !error && items.length === 0 && (
+        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text3)', letterSpacing:'0.08em' }}>BELUM ADA BERITA SAAT INI.</span>
         </div>
       )}
 
       {!loading && !error && items.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <Card className="p-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-ink-faint font-medium">Bullish</p>
-                <p className="mt-1 font-mono text-xl font-bold text-up">{summary.bullish}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-ink-faint font-medium">Bearish</p>
-                <p className="mt-1 font-mono text-xl font-bold text-down">{summary.bearish}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-ink-faint font-medium">Netral</p>
-                <p className="mt-1 font-mono text-xl font-bold text-ink-soft">{summary.netral}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-ink-faint font-medium">Sentimen Pasar</p>
-                <p className={`mt-1 font-mono text-xl font-bold ${summary.net >= 0 ? 'text-up' : 'text-down'}`}>
-                  {summary.net >= 0 ? '+' : ''}{summary.net}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      )}
-
-      {!loading && !error && items.length === 0 && (
-        <div className="glass rounded-2xl p-10 text-center">
-          <Newspaper size={22} className="mx-auto text-ink-faint mb-3" />
-          <p className="text-sm text-ink-soft">Belum ada berita saat ini.</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {items.map((n, i) => {
-          const impact = impactLabel(n.sentiment)
-          return (
-            <motion.div
-              key={n.link}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 + i * 0.04, duration: 0.35 }}
-              className="glass rounded-2xl overflow-hidden group hover:border-up/25 transition-colors flex flex-col"
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:1, background:'var(--border)' }}>
+          {items.map((item, i) => (
+            <div key={item.link || i} onClick={() => openStock(item.ticker)} style={{
+              background: i === 0 ? 'var(--bg3)' : 'var(--bg2)', padding:'18px 18px 16px',
+              cursor: item.ticker ? 'pointer' : 'default',
+              borderLeft: i === 0 ? '3px solid var(--accent)' : '3px solid transparent',
+              transition:'background 0.12s',
+              minHeight: 180,
+              display:'flex',
+              flexDirection:'column',
+              minWidth: 0,
+            }}
+              onMouseEnter={e => (e.currentTarget).style.background = 'var(--bg3)'}
+              onMouseLeave={e => (e.currentTarget).style.background = i === 0 ? 'var(--bg3)' : 'var(--bg2)'}
             >
-              <a href={n.link} target="_blank" rel="noopener noreferrer">
-                <div className="relative h-40 bg-elevated overflow-hidden">
-                  {n.image ? (
-                    <img
-                      src={n.image}
-                      alt={n.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-up/10 to-teal-500/5">
-                      <Newspaper size={28} className="text-up/40" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <div className="absolute top-2.5 left-3">{sentimentBadge(n.sentiment)}</div>
-                  <span className="absolute bottom-2.5 left-3 flex items-center gap-1 text-[10px] text-white/80 font-mono">
-                    <Clock size={10} /> {timeAgo(n.published)}
-                  </span>
-                </div>
-                <div className="p-4 flex-1">
-                  <h3 className="text-sm font-semibold leading-snug line-clamp-3 group-hover:text-up transition-colors">
-                    {n.title}
-                  </h3>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
+                <span className="chip">{item.category || cat}</span>
+                {item.ticker && <span style={{ fontFamily:'var(--font-mono)', fontSize:9, padding:'2px 6px', background:'var(--accent-dim)', color:'var(--accent)', border:'1px solid var(--accent)', letterSpacing:'0.06em' }}>{item.ticker}</span>}
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:8, padding:'2px 6px', color: sentCol(sent(item.sentiment)), border:`1px solid ${sentCol(sent(item.sentiment))}`, letterSpacing:'0.06em', opacity:0.8 }}>
+                  {sent(item.sentiment).toUpperCase()}
+                </span>
+              </div>
+              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration:'none', color:'inherit', flex:1 }}>
+                <div style={{ fontSize:15, fontWeight:500, color:'var(--text)', lineHeight:1.6, marginBottom:10, fontFamily:'var(--font-body)', maxWidth:'100%' }}>
+                  {item.title}
                 </div>
               </a>
-
-              <div className="px-4 pb-4 -mt-1 space-y-2">
-                <p className={`flex items-center gap-1.5 text-[11px] font-mono ${impact.cls}`}>
-                  <impact.Icon size={12} /> {impact.text}
-                </p>
-                {n.related.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {n.related.map((r) => (
-                      <button
-                        key={r.ticker}
-                        onClick={() => onSelectStock?.({ ticker: r.ticker, name: r.name, sector: r.sector })}
-                        className="flex items-center gap-1.5 rounded-full border border-line-strong bg-card px-2.5 py-1 text-[11px] text-ink-soft hover:text-up hover:border-up/30 transition-colors cursor-pointer"
-                        title={r.name || r.ticker}
-                      >
-                        {r.ticker}
-                        {r.change != null && (
-                          <span className={`font-mono text-[10px] ${r.change >= 0 ? 'text-up' : 'text-down'}`}>
-                            {r.change >= 0 ? '+' : ''}{r.change}%
-                          </span>
+              <div style={{ marginBottom: 10, padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gap: 8 }}>
+                {(() => {
+                  const imp = impactText(item)
+                  const dirColor = imp.direction === 'positif' ? 'var(--up)' : imp.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em' }}>DAMPAK</span>
+                        <span className="sig" style={{ color: dirColor, borderColor: `${dirColor}40`, background: 'var(--bg3)' }}>{String(imp.direction).toUpperCase()}</span>
+                        <span className="chip">{imp.scopeLabel}</span>
+                        {imp.event && <span className="chip">{imp.event}</span>}
+                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>
+                          KEKUATAN {imp.strength}%
+                        </span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.04em', color: dirColor }}>
+                        {imp.headline.toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{imp.move}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {imp.related.length > 0 ? imp.related.map((t, i) => {
+                          const rel = item?.related?.[i]
+                          const dcol = rel?.direction === 'positif' ? 'var(--up)' : rel?.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
+                          return (
+                            <span key={t} className="chip" style={{ color: dcol, borderColor: `${dcol}40` }}>
+                              {t}{rel?.direction === 'positif' ? ' ↑' : rel?.direction === 'negatif' ? ' ↓' : ''}
+                            </span>
+                          )
+                        }) : (
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>TIDAK ADA EMITEN SPESIFIK</span>
                         )}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
-            </motion.div>
-          )
-        })}
-      </div>
-
-      <p className="text-[11px] text-ink-faint text-right">Sumber: cnbcindonesia.com · analisa sentimen otomatis</p>
+              <div style={{ display:'flex', gap:16, marginTop:'auto', flexWrap:'wrap' }}>
+                {item.source && <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text2)', letterSpacing:'0.04em' }}>{item.source}</span>}
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text3)' }}>{timeAgo(item.published)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

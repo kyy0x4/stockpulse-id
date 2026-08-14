@@ -83,8 +83,8 @@ export default function ScreenerFilters({ onApply }) {
           <h3 className="font-semibold text-sm">Filter Saham</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+          <div className="lg:col-span-4">
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">Cari Ticker / Nama</label>
             <input
               value={query}
@@ -94,7 +94,7 @@ export default function ScreenerFilters({ onApply }) {
             />
           </div>
 
-          <div>
+          <div className="lg:col-span-3">
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">Sektor</label>
             <select
               value={sector}
@@ -105,7 +105,7 @@ export default function ScreenerFilters({ onApply }) {
             </select>
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">
               Min. Skor Total: <span className="text-up font-mono">{minScore}</span>
             </label>
@@ -120,14 +120,14 @@ export default function ScreenerFilters({ onApply }) {
             />
           </div>
 
-          <div>
+          <div className="lg:col-span-3">
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">Signal</label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {['Semua', 'BUY', 'HOLD', 'SELL'].map((s) => (
                 <button
                   key={s}
                   onClick={() => { setSignal(s); apply() }}
-                  className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                  className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                     signal === s
                       ? 'border-up/40 bg-up/10 text-up'
                       : 'border-line-strong text-ink-soft hover:text-ink hover:bg-elevated'
@@ -145,7 +145,7 @@ export default function ScreenerFilters({ onApply }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama build (cth: Bank murah)"
-            className="w-48 rounded-xl bg-elevated border border-line-strong px-3.5 py-1.5 text-xs placeholder:text-ink-faint focus:outline-none focus:border-up/40"
+            className="w-full max-w-xs rounded-xl bg-elevated border border-line-strong px-3.5 py-1.5 text-xs placeholder:text-ink-faint focus:outline-none focus:border-up/40"
           />
           <button
             onClick={savePreset}

@@ -6,8 +6,9 @@ function pctToNum(v) {
 }
 
 export function adaptStock(s) {
-  const f = s.fundamental || {}
-  const t = s.technical || {}
+  const src = { ...s.payload, ...s }
+  const f = src.fundamental || {}
+  const t = src.technical || {}
 
   const isBackend = Boolean(f.metrics)
   const m = f.metrics || {}
@@ -16,18 +17,18 @@ export function adaptStock(s) {
   // Mock shape: already formatted for frontend directly.
   const fundamental = isBackend
     ? {
-        per: s.per,
-        pbv: s.pbv,
-        roe: s.roe != null ? +(s.roe * 100).toFixed(1) : null,
-        roa: s.roe != null ? +(s.roe * 100).toFixed(1) : null,
-        der: s.der,
+        per: src.per,
+        pbv: src.pbv,
+        roe: src.roe != null ? +(src.roe * 100).toFixed(1) : null,
+        roa: src.roa != null ? +(src.roa * 100).toFixed(1) : pctToNum(m.roa),
+        der: src.der,
         growth: pctToNum(m.growth),
         revenue_growth: pctToNum(m.revenue_growth),
         net_margin: pctToNum(m.net_margin),
         op_margin: pctToNum(m.op_margin),
         fcf_yield: pctToNum(m.fcf_yield),
         peg: m.peg != null ? parseFloat(m.peg) : null,
-        market_cap: s.market_cap,
+        market_cap: src.market_cap,
         score: f.score,
         rating: f.rating,
         pillars: f.pillars,
@@ -40,7 +41,7 @@ export function adaptStock(s) {
         rsi: t.rsi,
         macd: t.macd,
         trend: t.trend,
-        vol: t.vol_ratio,
+        vol: t.vol_ratio ?? t.vol,
         ema21: t.ema21,
         ema34: t.ema34,
         ema55: t.ema55,
@@ -59,19 +60,19 @@ export function adaptStock(s) {
     : { rsi: t.rsi, macd: t.macd, trend: t.trend, vol: t.vol, score: t.score }
 
   return {
-    ticker: s.ticker,
-    name: s.name,
-    sector: s.sector || 'Lainnya',
-    website: s.website,
-    logoUrl: `/logos/${s.ticker}.svg`,
-    logoFallback: s.logo_url,
-    price: s.price,
-    change: s.change,
-    volume: s.volume,
-    marketCap: s.market_cap || s.marketCap || '—',
-    composite: s.composite,
-    signal: s.signal || 'HOLD',
-    recommendation: s.recommendation,
+    ticker: src.ticker,
+    name: src.name,
+    sector: src.sector || 'Lainnya',
+    website: src.website,
+    logoUrl: `/logos/${src.ticker}.svg`,
+    logoFallback: src.logo_url,
+    price: src.price,
+    change: src.change,
+    volume: src.volume,
+    marketCap: src.market_cap || src.marketCap || '—',
+    composite: src.composite,
+    signal: src.signal || 'HOLD',
+    recommendation: src.recommendation,
     fundamental,
     technical,
   }

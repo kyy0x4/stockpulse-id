@@ -1,33 +1,20 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import Badge from '../components/ui/Badge'
-import ScoreRing from '../components/ui/ScoreRing'
-import ProgressBar from '../components/ui/ProgressBar'
-import StockLogo from '../components/ui/StockLogo'
-import PriceTrendChart from '../components/charts/PriceTrendChart'
-import { X, Star, TrendingUp, TrendingDown, Clock, BarChart3, PieChart, Calendar, Loader2 } from 'lucide-react'
+import { Spark, SBar, sigColor, sigBg, viewStock, LineChart } from '../components/ui/DashboardComponents'
+import { ChevronLeft, Star, TrendingUp, TrendingDown, Clock, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
 
-const mockSeries = [
-  { d: 'H1', close: 8920 }, { d: 'H2', close: 9080 }, { d: 'H3', close: 9180 },
-  { d: 'H4', close: 9120 }, { d: 'H5', close: 9300 }, { d: 'H6', close: 9380 },
-  { d: 'H7', close: 9250 }, { d: 'H8', close: 9440 }, { d: 'H9', close: 9520 },
-  { d: 'H10', close: 9650 },
-]
-
-function MetricRow({ label, value, good }) {
+function Metric({ label, value, good }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-card border border-line px-3.5 py-2.5">
-      <span className="text-xs text-ink-soft">{label}</span>
-      <span className={`font-mono text-sm font-semibold ${good ? 'text-up' : 'text-down'}`}>{value ?? '—'}</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 12, color: 'var(--text2)' }}>{label}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: value == null ? 'var(--text3)' : good ? 'var(--up)' : 'var(--down)', textAlign: 'right' }}>{value ?? '—'}</span>
     </div>
   )
 }
 
 export default function StockDetailPage({ stock, onClose, onToggleFav, favorites }) {
-  const f = stock.fundamental || {}
-  const t = stock.technical || {}
-  const isFav = favorites.includes(stock.ticker)
+  const s = viewStock(stock || {})
+  const isFav = favorites.includes(s.ticker)
 
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
@@ -35,213 +22,198 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   useEffect(() => {
     let alive = true
     setLoadingDetail(true)
-    api.detail(stock.ticker)
+    api.detail(s.ticker)
       .then((d) => alive && setDetail(d))
       .catch(() => alive && setDetail(null))
       .finally(() => alive && setLoadingDetail(false))
     return () => { alive = false }
-  }, [stock.ticker])
+  }, [s.ticker])
 
+  const merged = detail
+    ? viewStock({
+        ...s,
+        ...detail,
+        fundamental: { ...(s.fundamental || {}), ...(detail.fundamental || {}) },
+        technical: { ...(s.technical || {}), ...(detail.technical || {}) },
+      })
+    : s
   const history = detail?.history || []
-  const chartData =
-    history.length > 0
-      ? history.slice(-90).map((h) => ({ date: h.date?.slice(5) || '—', close: h.close }))
-      : mockSeries
+  const series = history.slice(-90).map(h => h.close).filter(n => n != null)
+  const seasonality = detail?.seasonality
+  const price = detail?.price ?? s.price
+  const change = detail?.change ?? s.changePct
+  const name = detail?.name ?? s.name
+  const sector = detail?.sector ?? s.sector
+  const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : (change ?? 0) >= 0
+  const positive = (change ?? 0) >= 0
 
-  const price = detail?.price ?? stock.price
-  const change = detail?.change ?? stock.change
-  const name = detail?.name ?? stock.name
-  const sector = detail?.sector ?? stock.sector
+  const f = merged.fundamental || {}
+  const t = merged.technical || {}
+
+  const emaDaily = t.ema21 != null ? `${t.ema21} / ${t.ema34} / ${t.ema55}` : null
+  const emaWeekly = t.ema21w != null ? `${t.ema21w} / ${t.ema34w} / ${t.ema55w}` : null
+  const emaBull = () => {
+    const a = parseFloat(t.ema21), b = parseFloat(t.ema34), c = parseFloat(t.ema55)
+    return Number.isFinite(a) && Number.isFinite(b) && Number.isFinite(c) && a > b && b > c
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-overlay/80 backdrop-blur-sm p-4 md:p-8"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: 30, opacity: 0, scale: 0.98 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 30, opacity: 0, scale: 0.98 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="relative w-full max-w-4xl rounded-3xl border border-line-strong bg-card shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fade-up" style={{ padding: '20px 16px 28px' }}>
+      <div className="sm:px-5 lg:px-7" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl border border-line-strong bg-card p-2 text-ink-soft hover:text-ink transition-colors cursor-pointer z-10"
-          aria-label="Tutup"
+          style={{ border: '1px solid var(--border2)', background: 'var(--bg3)', color: 'var(--text2)', cursor: 'pointer', padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          aria-label="Kembali"
         >
-          <X size={18} />
+          <ChevronLeft size={15} />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em' }}>KEMBALI</span>
         </button>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', letterSpacing: '0.08em' }}>ANALISA SAHAM · HALAMAN DETAIL</div>
+      </div>
 
-        <div className="p-6 md:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <StockLogo ticker={stock.ticker} name={name} size="lg" logoUrl={stock.logoUrl || `/logos/${stock.ticker}.svg`} />
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-xl font-bold tracking-tight">{stock.ticker}</h2>
-                  <Badge tone={stock.signal === 'BUY' ? 'green' : stock.signal === 'SELL' ? 'red' : 'amber'} dot>
-                    {stock.signal === 'BUY' ? 'Layak Beli' : stock.signal === 'SELL' ? 'Hindari' : 'Tahan'}
-                  </Badge>
-                </div>
-                <p className="text-sm text-ink-faint mt-0.5">{name} · {sector}</p>
-                <p className="text-xs text-ink-faint mt-1 flex items-center gap-1">
-                  <Clock size={11} /> Update: data real & analisa otomatis
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onToggleFav(stock.ticker)}
-                className={`rounded-xl border px-3 py-2 text-sm transition-all cursor-pointer ${
-                  isFav
-                    ? 'border-warning/30 bg-warning/10 text-warning'
-                    : 'border-line-strong bg-card text-ink-soft hover:text-ink'
-                }`}
-              >
-                <Star size={14} className="inline mr-1.5" fill={isFav ? 'currentColor' : 'none'} />
-                {isFav ? 'Di Watchlist' : 'Watchlist'}
-              </button>
-              <div className="text-right">
-                <p className="font-mono text-2xl font-bold tracking-tight">{price != null ? price.toLocaleString('id-ID') : '—'}</p>
-                <p className={`flex items-center justify-end gap-1 font-mono text-sm ${change != null && change >= 0 ? 'text-up' : 'text-down'}`}>
-                  {change != null && change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  {change != null ? `${change >= 0 ? '+' : ''}${change}%` : '—'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-line bg-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart3 size={15} className="text-info" />
-              <p className="text-sm font-semibold">Performa Harga {history.length > 0 ? '(3 bulan)' : '(10 hari)'}</p>
-              {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-ink-faint" />}
-            </div>
-            <div className="h-[180px]">
-              <PriceTrendChart data={chartData} />
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="card sm:px-6" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <PieChart size={15} className="text-up" />
-                <h3 className="text-sm font-semibold">Fundamental</h3>
-                <span className="ml-auto font-mono text-xs text-ink-faint">Skor: {f.score ?? '—'}/100</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)', margin: 0 }}>{s.ticker}</h2>
+                <span className="sig" style={{ color: sigColor(s.signal, 'dark'), background: sigBg(s.signal), borderColor: `${sigColor(s.signal, 'dark')}40` }}>
+                  {s.signal}
+                </span>
+                {detail?.signal && (
+                  <span className="chip" style={{ color: 'var(--text2)' }}>{String(detail.signal).toUpperCase()}</span>
+                )}
               </div>
-              <div className="space-y-2">
-                <MetricRow label="PER (Price to Earnings)" value={f.per} good={f.per > 0 && f.per < 15} />
-                <MetricRow label="PBV (Price to Book)" value={f.pbv} good={f.pbv < 3} />
-                <MetricRow label="ROE (Return on Equity)" value={f.roe != null ? `${f.roe}%` : null} good={f.roe > 15} />
-                <MetricRow label="DER (Debt to Equity)" value={f.der} good={f.der < 1} />
-                <MetricRow label="Pertumbuhan Laba" value={f.growth != null ? `${f.growth}%` : null} good={f.growth > 10} />
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-ink-soft">Skor Fundamental</span>
-                  <span className="font-mono text-up">{f.score ?? '—'}</span>
-                </div>
-                <ProgressBar value={f.score ?? 0} color={f.score >= 75 ? '#22c55e' : f.score >= 60 ? '#f59e0b' : '#ef4444'} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={15} className="text-info" />
-                <h3 className="text-sm font-semibold">Teknikal</h3>
-                <span className="ml-auto font-mono text-xs text-ink-faint">Skor: {t.score ?? '—'}/100</span>
-              </div>
-              <div className="space-y-2">
-                <MetricRow label="Tren (EMA D+W)" value={t.trend} good={t.trend === 'Uptrend'} />
-                <MetricRow
-                  label="EMA Cross"
-                  value={t.ema_cross === 'Golden Cross' ? 'Bull Cross' : t.ema_cross}
-                  good={t.ema_cross === 'Golden Cross' || t.ema_cross === 'Bullish'}
-                />
-                <MetricRow
-                  label="EMA Daily 21/34/55"
-                  value={t.ema21 ? `${t.ema21} / ${t.ema34} / ${t.ema55}` : '—'}
-                  good={parseFloat(t.ema21) > parseFloat(t.ema34) && parseFloat(t.ema34) > parseFloat(t.ema55)}
-                />
-                <MetricRow
-                  label="EMA Weekly 21/34/55"
-                  value={t.ema21w ? `${t.ema21w} / ${t.ema34w} / ${t.ema55w}` : '—'}
-                  good={parseFloat(t.ema21w) > parseFloat(t.ema34w) && parseFloat(t.ema34w) > parseFloat(t.ema55w)}
-                />
-                <MetricRow label="RSI (14 hari)" value={t.rsi} good={t.rsi > 40 && t.rsi < 70} />
-                <MetricRow label="MACD" value={t.macd} good={t.macd === 'Bullish'} />
-                <MetricRow label="Rasio Volume" value={t.vol != null ? `${t.vol}x` : null} good={t.vol >= 1} />
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-ink-soft">Skor Teknikal</span>
-                  <span className="font-mono text-info">{t.score ?? '—'}</span>
-                </div>
-                <ProgressBar value={t.score ?? 0} color={t.score >= 75 ? '#22c55e' : t.score >= 60 ? '#f59e0b' : '#ef4444'} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-center justify-between rounded-2xl bg-gradient-to-r from-up/10 to-up/5 border border-up/20 p-5">
-            <div>
-              <p className="text-xs text-up/80 uppercase tracking-widest font-medium">Skor Total Composite</p>
-              <p className="mt-1 text-sm text-ink-soft max-w-sm">
-                {stock.composite >= 75
-                  ? 'Saham ini lolos seleksi fundamental & teknikal jangka panjang. Cocok untuk masuk daftar kandidat beli.'
-                  : stock.composite >= 60
-                    ? 'Cukup solid, tapi belum ideal. Tunggu koreksi atau perbaikan fundamental sebelum masuk.'
-                    : 'Di bawah standar. Hindari untuk portofolio jangka panjang saat ini.'}
+              <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>{name} · {sector}</p>
+              <p style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={11} /> Update: data real & analisa otomatis
               </p>
             </div>
-            <ScoreRing value={stock.composite ?? 0} size={64} stroke={6} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                onClick={() => onToggleFav(s.ticker)}
+                style={{
+                  border: isFav ? '1px solid var(--up)' : '1px solid var(--border2)',
+                  background: isFav ? 'var(--up-dim)' : 'var(--bg3)',
+                  color: isFav ? 'var(--up)' : 'var(--text2)',
+                  padding: '6px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Star size={13} fill={isFav ? 'currentColor' : 'none'} />
+                {isFav ? 'Di Watchlist' : 'Watchlist'}
+              </button>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>{price != null ? price.toLocaleString('id-ID') : '—'}</p>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: trendPositive ? 'var(--up)' : 'var(--down)', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                  {trendPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                  {change != null ? `${positive ? '+' : ''}${change}%` : '—'}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-line bg-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar size={15} className="text-warning" />
-              <h3 className="text-sm font-semibold">Seasonality (Pola Musiman)</h3>
-              {loadingDetail && <Loader2 size={14} className="ml-auto animate-spin text-ink-faint" />}
+          <div style={{ marginTop: 20, border: '1px solid var(--border)', background: 'var(--bg3)', padding: 16, borderRadius: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 600 }}>Performa Harga {history.length > 0 ? '(3 bulan)' : '(7 sessie)'}</p>
+              {loadingDetail && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text3)', marginLeft: 4 }} />}
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: trendPositive ? 'var(--up)' : 'var(--down)' }}>TREN</span>
             </div>
-            {detail?.seasonality?.summary ? (
-              <>
-                <p className="text-xs text-ink-soft leading-relaxed mb-4">{detail.seasonality.summary}</p>
-                <div className="grid grid-cols-12 gap-1.5">
-                  {detail.seasonality.monthly.map((m) => {
-                    const avg = m.avg_return ?? 0
-                    const h = Math.min(Math.max(Math.abs(avg) / 4, 4), 30)
-                    const positive = avg >= 0
+            {series.length >= 2 ? (
+              <LineChart values={series} up={trendPositive} h={200} />
+            ) : (
+              <Spark data={s.sparkline} up={trendPositive} w={800} h={120} fluid />
+            )}
+          </div>
+
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>Fundamental</p>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>Skor: {s.fundScore}/100</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Metric label="PER (Price to Earnings)" value={f.per != null ? `${f.per}x` : null} good={f.per > 0 && f.per < 15} />
+                <Metric label="PBV (Price to Book)" value={f.pbv != null ? `${f.pbv}x` : null} good={f.pbv < 3} />
+                <Metric label="ROE (Return on Equity)" value={f.roe != null ? `${f.roe}%` : null} good={f.roe > 15} />
+                <Metric label="DER (Debt to Equity)" value={f.der != null ? `${f.der}x` : null} good={f.der < 1} />
+                <Metric label="Pertumbuhan Laba" value={f.growth != null ? `${f.growth}%` : null} good={f.growth > 10} />
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <SBar v={s.fundScore} color="var(--accent)" />
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>Teknikal</p>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--up)' }}>Skor: {s.techScore}/100</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Metric label="Tren (EMA D+W)" value={t.trend || null} good={t.trend === 'Uptrend'} />
+                <Metric label="EMA Cross" value={t.ema_cross || null} good={t.ema_cross === 'Bullish' || t.ema_cross === 'Golden Cross'} />
+                <Metric label="EMA Daily 21/34/55" value={emaDaily} good={emaBull()} />
+                <Metric label="EMA Weekly 21/34/55" value={emaWeekly} good={t.ema21w != null && parseFloat(t.ema21w) > parseFloat(t.ema34w) && parseFloat(t.ema34w) > parseFloat(t.ema55w)} />
+                <Metric label="RSI (14 hari)" value={t.rsi != null ? `${t.rsi}` : null} good={t.rsi > 40 && t.rsi < 70} />
+                <Metric label="MACD" value={t.macd || null} good={t.macd === 'Bullish'} />
+                <Metric label="Rasio Volume" value={t.vol != null ? `${t.vol}x` : null} good={t.vol >= 1} />
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <SBar v={s.techScore} color="var(--up)" />
+              </div>
+            </div>
+          </div>
+
+          {seasonality?.monthly?.length > 0 && (
+            <div style={{ marginTop: 20, border: '1px solid var(--border)', background: 'var(--bg3)', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>Seasonality</p>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>
+                  {seasonality.last_date ? `update ${seasonality.last_date}` : 'historical pattern'}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 14 }}>
+                {seasonality.summary || 'Data seasonality tersedia.'}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+                {seasonality.monthly
+                  .filter((m) => m.avg_return != null)
+                  .sort((a, b) => a.month - b.month)
+                  .map((m) => {
+                    const positiveMonth = (m.avg_return ?? 0) >= 0
                     return (
-                      <div key={m.month} className="flex flex-col items-center gap-1" title={`${m.full}: ${avg >= 0 ? '+' : ''}${avg}% (positif ${m.prob_positive ?? '—'}%)`}>
-                        <span className="font-mono text-[9px] text-ink-faint">{m.label}</span>
-                        <div className="flex h-[34px] w-full items-center justify-center rounded-md bg-surface">
-                          <div
-                            className="w-full rounded-md"
-                            style={{
-                              height: `${h}px`,
-                              backgroundColor: avg === 0 ? 'var(--color-line)' : positive ? 'var(--color-up)' : 'var(--color-down)',
-                              opacity: 0.85,
-                            }}
-                          />
+                      <div key={m.month} style={{ padding: '10px 10px 9px', border: '1px solid var(--border)', background: 'var(--bg2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>{m.label}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: positiveMonth ? 'var(--up)' : 'var(--down)' }}>
+                            {m.prob_positive != null ? `${m.prob_positive.toFixed(0)}%` : '—'}
+                          </span>
                         </div>
-                        <span className={`font-mono text-[9px] ${positive ? 'text-up' : 'text-down'}`}>
-                          {avg >= 0 ? '+' : ''}{avg}
-                        </span>
+                        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, lineHeight: 1, color: positiveMonth ? 'var(--up)' : 'var(--down)' }}>
+                          {m.avg_return > 0 ? '+' : ''}{m.avg_return.toFixed(2)}%
+                        </div>
+                        <div style={{ marginTop: 6, height: 3, background: 'var(--border)' }}>
+                          <div style={{ width: `${Math.min(100, Math.max(10, 50 + m.avg_return * 6))}%`, height: '100%', background: positiveMonth ? 'var(--up)' : 'var(--down)' }} />
+                        </div>
                       </div>
                     )
                   })}
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-ink-faint">Analisa musim belum tersedia untuk saham ini.</p>
-            )}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderLeftWidth: 4, borderRadius: 18 }}>
+            <div>
+              <p style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--accent)', textTransform: 'uppercase' }}>Skor Total Composite</p>
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--text2)' }}>
+                {s.composite >= 75
+                  ? 'Saham ini lolos seleksi fundamental & teknikal jangka panjang. Cocok untuk kandidat beli.'
+                  : s.composite >= 60
+                    ? 'Cukup solid, tapi belum ideal. Tunggu koreksi sebelum masuk.'
+                    : 'Di bawah standar. Hindari untuk portofolio jangka panjang saat ini.'}
+              </p>
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, color: 'var(--accent)', lineHeight: 1 }}>{s.composite}</div>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
   )
 }

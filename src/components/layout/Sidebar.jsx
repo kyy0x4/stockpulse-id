@@ -1,25 +1,20 @@
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  SlidersHorizontal,
-  Star,
-  Activity,
-  Settings,
-  CandlestickChart,
-  Newspaper,
-  X,
-} from 'lucide-react'
+import { X } from 'lucide-react'
+import logoUrl from '../../images/myLogo.png'
 
 const nav = [
-  { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { id: 'screener', label: 'Screener', path: '/screener', icon: SlidersHorizontal },
-  { id: 'watchlist', label: 'Watchlist', path: '/watchlist', icon: Star },
-  { id: 'market', label: 'Pasar', path: '/market', icon: Activity },
-  { id: 'news', label: 'News', path: '/news', icon: Newspaper },
+  { id: 'dashboard', label: 'Dashboard', path: '/' },
+  { id: 'screener', label: 'Screener', path: '/screener' },
+  { id: 'watchlist', label: 'Watchlist', path: '/watchlist' },
+  { id: 'market', label: 'Pasar', path: '/market' },
+  { id: 'market-pulse', label: 'Market Pulse', path: '/market-pulse' },
+  { id: 'news', label: 'News', path: '/news' },
+  { id: 'news-impact', label: 'News Impact', path: '/news-impact' },
 ]
 
-export default function Sidebar({ active, onNavigate, open = false, onClose }) {
+export default function Sidebar({ active, onNavigate, open = false, collapsed = false, onClose, theme, toggleTheme, onToggleCollapse }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -28,6 +23,10 @@ export default function Sidebar({ active, onNavigate, open = false, onClose }) {
     onClose?.()
     if (item.path) navigate(item.path)
   }
+
+  useEffect(() => {
+    onClose?.()
+  }, [location.pathname])
 
   return (
     <>
@@ -44,68 +43,94 @@ export default function Sidebar({ active, onNavigate, open = false, onClose }) {
         )}
       </AnimatePresence>
 
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-line bg-card/95 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:translate-x-0 w-[240px] ${
-          open ? 'translate-x-0' : '-translate-x-full'
+      <motion.aside
+        initial={false}
+        animate={{ width: collapsed ? 88 : 260 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+        className={`fixed inset-y-0 left-0 z-40 flex max-w-[85vw] flex-col border-r border-line bg-card/95 backdrop-blur-xl lg:static lg:max-w-none ${
+          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
+        style={{ willChange: 'width, transform' }}
       >
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-line">
-          <div className="glow-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600">
-            <CandlestickChart size={18} className="text-slate-950" strokeWidth={2.5} />
-          </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold tracking-tight">
-              Plot<span className="text-accent">Finansial</span>
-            </p>
-            <p className="text-[10px] text-ink-faint font-mono">ID · Long Term</p>
+        <div className="relative px-5 py-5 border-b border-line">
+          <div className="flex items-center justify-center min-h-[44px]">
+            <AnimatePresence mode="wait" initial={false}>
+              {collapsed ? (
+                <motion.img
+                  key="logo"
+                  src={logoUrl}
+                  alt="PlotFinansial"
+                  draggable={false}
+                  initial={{ opacity: 0, scale: 0.82, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.82, y: -4 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="h-9 w-9 object-contain"
+                />
+              ) : (
+                <motion.div
+                  key="wordmark"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="text-center"
+                >
+                  <p className="font-display text-[28px] leading-none font-extrabold tracking-tight">
+                    Plot<span className="text-accent">Finansial</span>
+                  </p>
+                  <p className="font-mono text-[9px] mt-1 text-ink-soft tracking-[0.12em]">
+                    ANALISA FUNDAMENTAL + TEKNIKAL
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <button
             onClick={onClose}
-            className="ml-auto rounded-lg p-1.5 text-ink-soft hover:text-ink hover:bg-elevated transition-colors cursor-pointer lg:hidden"
+            className="absolute right-4 top-4 rounded-lg p-1.5 text-ink-soft hover:text-ink hover:bg-elevated transition-colors cursor-pointer lg:hidden"
             aria-label="Tutup menu"
           >
             <X size={16} />
           </button>
-        </div>
+          <button
+            onClick={onToggleCollapse}
+            className="absolute right-4 top-4 hidden rounded-lg p-1.5 text-ink-soft hover:text-ink hover:bg-elevated transition-colors cursor-pointer lg:inline-flex"
+            aria-label={collapsed ? 'Buka sidebar' : 'Kecilkan sidebar'}
+          >
+            <span className="font-mono text-[10px]">{collapsed ? '›' : '‹'}</span>
+          </button>
+        </div> 
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 py-3">
           {nav.map((item) => {
             const activeTab = active === item.id || location.pathname === item.path
             return (
-              <button
+              <motion.button
                 key={item.id}
                 onClick={() => handleNavigate(item)}
-                className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                  activeTab ? 'text-ink' : 'text-ink-soft hover:text-ink hover:bg-elevated'
-                }`}
+                className={`nav-btn ${activeTab ? 'active' : ''} ${collapsed ? 'justify-center px-3' : ''}`}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.985 }}
+                transition={{ duration: 0.12 }}
               >
-                {activeTab && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-up/15 to-transparent border border-up/20"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <item.icon size={18} className="relative z-10" />
-                <span className="relative z-10">{item.label}</span>
-                {activeTab && (
-                  <span className="relative z-10 ml-auto h-1.5 w-1.5 rounded-full bg-accent glow-green" />
-                )}
-              </button>
+                <span>{item.label}</span>
+              </motion.button>
             )
           })}
         </nav>
 
-        <div className="p-3 border-t border-line">
+        <div className="p-4 border-t border-line">
           <button
-            onClick={() => navigate('/')}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-soft hover:text-ink hover:bg-elevated transition-colors cursor-pointer"
+            onClick={toggleTheme}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 mb-3 border border-line-strong bg-elevated text-ink-soft font-mono text-[10px] tracking-[0.06em] transition-colors cursor-pointer ${collapsed ? 'justify-center' : ''}`}
           >
-            <Settings size={18} />
-            <span>Pengaturan</span>
+            <span className="text-[13px]">{theme === 'dark' ? '☼' : '◗'}</span>
+            {!collapsed && (theme === 'dark' ? 'LIGHT MODE' : 'DARK MODE')}
           </button>
+          {!collapsed && <div className="font-mono text-[9px] text-ink-faint tracking-[0.08em]">IDX LIVE · 16:00 WIB</div>}
         </div>
-      </aside>
+      </motion.aside>
     </>
   )
 }

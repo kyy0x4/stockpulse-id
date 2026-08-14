@@ -100,7 +100,10 @@ def list_stocks(
             from app.services import supabase as db
             quotes = db.fetch_quotes(limit=400)
             if quotes:
-                results = [s for s in quotes if _matches(s, sector, signal, min_score, q)]
+                results = [
+                    s for s in (dict(s, **(s.get("payload") or {})) for s in quotes)
+                    if _matches(s, sector, signal, min_score, q)
+                ]
         except Exception:
             pass
         if results is None:
@@ -168,6 +171,8 @@ def news(category: str = "market", limit: int = Query(20, le=50)):
                         "sector": meta.get("sector") or em.get("sector"),
                         "price": meta.get("price"),
                         "change": meta.get("change"),
+                        "direction": r.get("direction"),
+                        "note": r.get("note"),
                     })
                 cached.append({**it, "related": related})
         except Exception as exc:

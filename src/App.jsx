@@ -1,17 +1,22 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
+import TickerTape from './components/layout/TickerTape'
 import StockDetailPage from './pages/StockDetailPage'
+import { useTheme } from './theme/ThemeProvider'
 import { useStocks } from './hooks/useStocks'
 import { stocks as mockStocks } from './data/stocks'
+import { viewStock } from './components/ui/DashboardComponents'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ScreenerPage = lazy(() => import('./pages/ScreenerPage'))
 const WatchlistPage = lazy(() => import('./pages/WatchlistPage'))
 const MarketPage = lazy(() => import('./pages/MarketPage'))
 const NewsPage = lazy(() => import('./pages/NewsPage'))
+const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
+const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
 
 const FAV_KEY = 'stockpulse-favorites'
 
@@ -25,7 +30,7 @@ function loadFavorites() {
   } catch {
     /* ignore */
   }
-  return ['BBCA', 'BBRI', 'ASII']
+  return []
 }
 
 function PageWrapper({ children }) {
@@ -49,46 +54,98 @@ function PageFallback() {
   )
 }
 
-function Shell({ favorites, toggleFav, selected, setSelected }) {
+function StockDetailRoute({ stocks, favorites, onToggleFav, theme }) {
+  const { ticker } = useParams()
+  const navigate = useNavigate()
+  const stock = stocks.find((s) => s.ticker === ticker?.toUpperCase())
+
+  if (!stock) {
+    return (
+      <div style={{ padding: 28 }}>
+        <div className="card" style={{ padding: 24 }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>Saham tidak ditemukan</p>
+          <button
+            onClick={() => navigate('/')}
+            style={{ marginTop: 14, border: '1px solid var(--border2)', background: 'var(--bg3)', color: 'var(--text)', padding: '8px 12px', cursor: 'pointer' }}
+          >
+            Kembali
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <StockDetailPage
+      stock={stock}
+      onClose={() => navigate(-1)}
+      onToggleFav={onToggleFav}
+      favorites={favorites}
+      theme={theme}
+    />
+  )
+}
+
+function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usingMock }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { stocks, loading, usingMock } = useStocks()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const page = location.pathname.replace(/^\//, '') || 'dashboard'
 
   const navigateTo = (id) => navigate(id === 'dashboard' ? '/' : `/${id}`)
 
-  const data = stocks.length ? stocks : mockStocks
+  const baseData = stocks.length ? stocks : mockStocks
+  const data = query.trim()
+    ? baseData.filter((s) => {
+        const v = viewStock(s)
+        const q = query.trim().toLowerCase()
+        return (
+          String(v.ticker || '').toLowerCase().includes(q) ||
+          String(v.name || '').toLowerCase().includes(q) ||
+          String(v.sector || '').toLowerCase().includes(q)
+        )
+      })
+    : baseData
+
+  const openDetail = (stock) => navigate(`/stock/${stock.ticker}`)
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="fixed inset-0 grid-pattern pointer-events-none" aria-hidden="true" />
-      <div className="fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full bg-emerald-500/[0.06] blur-[120px] pointer-events-none" aria-hidden="true" />
-      <div className="fixed -bottom-40 -right-40 h-[480px] w-[480px] rounded-full bg-teal-500/[0.05] blur-[120px] pointer-events-none" aria-hidden="true" />
+    <div className="flex min-h-screen bg-background text-foreground">
+      <div className="fixed inset-0 grid-bg pointer-events-none" aria-hidden="true" />
 
       <Sidebar
         active={page}
         onNavigate={navigateTo}
         open={sidebarOpen}
+        collapsed={sidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
-      <div className="relative ml-0 lg:ml-[240px] transition-all duration-300">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-300 ${sidebarCollapsed ? 'xl:ml-[88px]' : 'xl:ml-[264px]'}`}>
         <Topbar
           query={query}
           onSearch={setQuery}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          sidebarCollapsed={sidebarCollapsed}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
 
-        <main className="px-4 py-6 sm:px-6 md:px-8">
-          <div className="mb-4">
+        <TickerTape stocks={data} />
+
+        <main className="flex-1 overflow-y-auto">
+          <div className="px-4 sm:px-5 py-1">
             {usingMock && (
-              <span className="text-[11px] text-warning/80 font-mono">mode demo · backend tidak terhubung, pakai data mock</span>
+              <span className="font-mono text-[10px] text-warning/80">mode demo · backend tidak terhubung, pakai data mock</span>
             )}
           </div>
-
           <AnimatePresence mode="wait">
             <PageWrapper key={location.pathname}>
               <Suspense fallback={<PageFallback />}>
@@ -96,30 +153,37 @@ function Shell({ favorites, toggleFav, selected, setSelected }) {
                   <Route path="/" element={<DashboardPage
                     stocks={data}
                     loading={loading}
-                    onSelectStock={setSelected}
+                    onSelectStock={openDetail}
                     onToggleFav={toggleFav}
                     favorites={favorites}
+                    theme={theme}
                   />} />
                   <Route path="/screener" element={<ScreenerPage
                     stocks={data}
-                    onSelectStock={setSelected}
+                    onSelectStock={openDetail}
                     onToggleFav={toggleFav}
                     favorites={favorites}
+                    theme={theme}
                   />} />
                   <Route path="/watchlist" element={<WatchlistPage
                     favorites={favorites}
                     stocks={data}
-                    onSelectStock={setSelected}
+                    onSelectStock={openDetail}
                     onToggleFav={toggleFav}
+                    theme={theme}
                   />} />
-                  <Route path="/market" element={<MarketPage stocks={data} />} />
-                  <Route path="/news" element={<NewsPage onSelectStock={setSelected} />} />
+                  <Route path="/market" element={<MarketPage stocks={data} theme={theme} />} />
+                  <Route path="/news" element={<NewsPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
+                  <Route path="/market-pulse" element={<MarketPulsePage stocks={data} theme={theme} />} />
+                  <Route path="/news-impact" element={<NewsImpactPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
+                  <Route path="/stock/:ticker" element={<StockDetailRoute stocks={data} favorites={favorites} onToggleFav={toggleFav} theme={theme} />} />
                   <Route path="*" element={<DashboardPage
                     stocks={data}
                     loading={loading}
-                    onSelectStock={setSelected}
+                    onSelectStock={openDetail}
                     onToggleFav={toggleFav}
                     favorites={favorites}
+                    theme={theme}
                   />} />
                 </Routes>
               </Suspense>
@@ -127,24 +191,14 @@ function Shell({ favorites, toggleFav, selected, setSelected }) {
           </AnimatePresence>
         </main>
       </div>
-
-      <AnimatePresence>
-        {selected && (
-          <StockDetailPage
-            stock={selected}
-            onClose={() => setSelected(null)}
-            onToggleFav={toggleFav}
-            favorites={favorites}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }
 
 export default function App() {
   const [favorites, setFavorites] = useState(loadFavorites)
-  const [selected, setSelected] = useState(null)
+  const { theme, toggleTheme } = useTheme()
+  const { stocks, loading, usingMock } = useStocks()
 
   useEffect(() => {
     try {
@@ -154,6 +208,12 @@ export default function App() {
     }
   }, [favorites])
 
+  useEffect(() => {
+    if (favorites.length === 0 && stocks.length > 0) {
+      setFavorites(stocks.slice(0, 3).map((s) => s.ticker))
+    }
+  }, [stocks, favorites])
+
   const toggleFav = (ticker) => {
     setFavorites((prev) =>
       prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
@@ -162,7 +222,15 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Shell favorites={favorites} toggleFav={toggleFav} selected={selected} setSelected={setSelected} />
+      <Shell
+        favorites={favorites}
+        toggleFav={toggleFav}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        stocks={stocks}
+        loading={loading}
+        usingMock={usingMock}
+      />
     </BrowserRouter>
   )
 }

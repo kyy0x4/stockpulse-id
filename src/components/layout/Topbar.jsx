@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, Search, TrendingUp, Menu, Sun, Moon, Newspaper, Loader2, X, ExternalLink, Clock, Wifi } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useIHSG } from '../../hooks/useIHSG'
-import { useTheme } from '../../theme/ThemeProvider'
 import { api } from '../../api/client'
 import { supabase } from '../../api/supabase'
 
@@ -19,9 +18,9 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)} hari`
 }
 
-export default function Topbar({ onSearch, query, onToggleSidebar }) {
+export default function Topbar({ onSearch, query, onToggleSidebar, onToggleCollapse, sidebarCollapsed, theme, toggleTheme }) {
   const { ihsg } = useIHSG()
-  const { isDark, toggleTheme } = useTheme()
+  const isDark = theme !== 'light'
   const positive = (ihsg?.change ?? 0) >= 0
   const ThemeIcon = isDark ? Sun : Moon
 
@@ -84,135 +83,125 @@ export default function Topbar({ onSearch, query, onToggleSidebar }) {
   const unread = news.filter((n) => !seen.includes(n.link)).length
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-background/80 backdrop-blur-xl px-4 sm:px-6">
+    <header style={{ position:'sticky', top:0, zIndex:30, display:'flex', flexWrap:'wrap', alignItems:'center', gap:10, minHeight:44, borderBottom:'1px solid var(--border)', background:'var(--bg)', padding:'8px 16px' }}>
       <button
         onClick={onToggleSidebar}
-        className="rounded-xl border border-line-strong bg-card p-2 text-ink-soft hover:text-ink transition-colors cursor-pointer lg:hidden"
+        className="lg:hidden"
+        style={{ border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)', padding:6, lineHeight:0, cursor:'pointer' }}
         aria-label="Buka menu"
       >
-        <Menu size={18} />
+        <Menu size={16} />
       </button>
 
-      <div className="relative flex-1 max-w-md">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
+      <button
+        onClick={onToggleCollapse}
+        className="hidden lg:inline-flex"
+        style={{ border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)', padding:6, lineHeight:0, cursor:'pointer' }}
+        aria-label={sidebarCollapsed ? 'Perlebar sidebar' : 'Kecilkan sidebar'}
+      >
+        <Menu size={16} />
+      </button>
+
+      <div style={{ position:'relative', flex:'1 1 260px', minWidth:0, maxWidth:420 }}>
+        <Search size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }} />
         <input
           value={query}
           onChange={(e) => onSearch?.(e.target.value)}
           placeholder="Cari saham (BBCA, BBRI, ...)"
-          className="w-full rounded-xl bg-elevated border border-line-strong py-2 pl-10 pr-4 text-sm placeholder:text-ink-faint focus:outline-none focus:border-up/40 focus:ring-2 focus:ring-up/10 transition-all"
+          style={{
+            width:'100%', background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--text)',
+            padding:'5px 12px 5px 30px', fontSize:12, fontFamily:'var(--font-body)', outline:'none',
+          }}
         />
       </div>
 
-      <div className="ml-auto hidden md:flex items-center gap-3 text-xs">
-        <div
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${
-            supabase ? 'bg-up/10 text-up border-up/15' : 'bg-elevated text-ink-faint border-line-strong'
-          }`}
-          title={supabase ? 'Harga update otomatis tiap menit saat jam bursa' : 'Realtime tidak aktif (env Supabase belum diset)'}
-        >
-          <span className={`relative flex h-2 w-2 ${supabase ? '' : 'hidden'}`}>
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-up opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-up" />
-          </span>
-          <Wifi size={13} className={supabase ? '' : 'opacity-40'} /> {supabase ? 'LIVE' : 'REFRESH'}
+      <div style={{ marginLeft:'auto', display:'none', alignItems:'center', gap:8, fontSize:11, fontFamily:'var(--font-mono)' }} className="lg:flex">
+        <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--border2)', background:'var(--bg3)', color: positive ? 'var(--up)' : 'var(--down)' }}>
+          <TrendingUp size={13} /> IHSG {(ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+          <span>{positive ? '+' : ''}{(ihsg?.change ?? 0).toLocaleString('id-ID')}%</span>
         </div>
-        <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${positive ? 'bg-up/10 text-up border-up/15' : 'bg-down/10 text-down border-down/15'}`}>
-          <TrendingUp size={14} /> IHSG {(ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}{' '}
-          <span className="font-mono">{positive ? '+' : ''}{(ihsg?.change ?? 0).toLocaleString('id-ID')}%</span>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-card text-ink/70 border border-line-strong">
-          <span className="font-mono">LQ45</span> <span className="text-ink-faint">1.045,22</span>
+        <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)' }}>
+          <Wifi size={13} style={{ color: supabase ? 'var(--up)' : 'var(--text3)' }} /> {supabase ? 'LIVE' : 'REFRESH'}
         </div>
       </div>
 
-      <motion.button
-        whileTap={{ scale: 0.92 }}
-        onClick={toggleTheme}
-        className="rounded-xl border border-line-strong bg-card p-2.5 text-ink-soft hover:text-ink transition-colors cursor-pointer"
-        aria-label="Ganti tema"
-      >
-        <ThemeIcon size={16} />
-      </motion.button>
-
-      <div ref={panelRef} className="relative">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            if (!open) markSeen()
-            setOpen((v) => !v)
-          }}
-          className="relative rounded-xl border border-line-strong bg-card p-2.5 text-ink/70 hover:text-ink transition-colors cursor-pointer"
-          aria-label="Notifikasi berita"
+      <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        <button
+          onClick={toggleTheme}
+          style={{ border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)', padding:6, lineHeight:0, cursor:'pointer' }}
+          aria-label="Ganti tema"
         >
-          <Bell size={16} />
-          {unread > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold text-slate-950 glow-green">
-              {unread > 9 ? '9+' : unread}
-            </span>
-          )}
-        </motion.button>
+          <ThemeIcon size={15} />
+        </button>
 
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="absolute right-0 top-full mt-2 w-[340px] max-w-[90vw] rounded-2xl border border-line-strong bg-card shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-                <p className="text-sm font-semibold flex items-center gap-2">
-                  <Newspaper size={15} className="text-up" /> Berita Terbaru
-                </p>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg p-1 text-ink-faint hover:text-ink hover:bg-elevated transition-colors cursor-pointer"
-                  aria-label="Tutup notifikasi"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+        <div ref={panelRef} style={{ position:'relative' }}>
+          <button
+            onClick={() => {
+              if (!open) markSeen()
+              setOpen((v) => !v)
+            }}
+            style={{ position:'relative', border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)', padding:6, lineHeight:0, cursor:'pointer' }}
+            aria-label="Notifikasi berita"
+          >
+            <Bell size={15} />
+            {unread > 0 && (
+              <span style={{ position:'absolute', top:-6, right:-6, minWidth:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent)', color:'var(--bg)', fontFamily:'var(--font-mono)', fontSize:9, fontWeight:500, padding:'0 3px' }}>
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
 
-              <div className="max-h-[380px] overflow-y-auto">
-                {loadingNews && news.length === 0 ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-ink-faint">
-                    <Loader2 size={14} className="animate-spin" /> memuat…
-                  </div>
-                ) : news.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-ink-faint">Belum ada berita.</p>
-                ) : (
-                  news.map((n) => (
-                    <a
-                      key={n.link}
-                      href={n.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setOpen(false)}
-                      className="flex gap-3 px-4 py-3 border-b border-line last:border-0 hover:bg-elevated transition-colors"
-                    >
-                      {n.image && (
-                        <img src={n.image} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium leading-snug line-clamp-2">{n.title}</p>
-                        <p className="mt-1 flex items-center gap-1 text-[10px] text-ink-faint font-mono">
-                          <Clock size={9} /> {timeAgo(n.published)} · buka
-                          <ExternalLink size={9} />
-                        </p>
-                      </div>
-                    </a>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                style={{ position:'absolute', right:0, top:'calc(100% + 8px)', width:340, maxWidth:'90vw', background:'var(--bg2)', border:'1px solid var(--border2)', overflow:'hidden' }}
+              >
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+                  <p style={{ fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:8 }}>
+                    <Newspaper size={14} style={{ color:'var(--up)' }} /> Berita Terbaru
+                  </p>
+                  <button onClick={() => setOpen(false)} style={{ border:'none', background:'none', color:'var(--text3)', padding:4, lineHeight:0, cursor:'pointer' }} aria-label="Tutup notifikasi">
+                    <X size={13} />
+                  </button>
+                </div>
 
-      <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-sm font-bold text-slate-950">
-        K
+                <div style={{ maxHeight:360, overflowY:'auto' }}>
+                  {loadingNews && news.length === 0 ? (
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'32px 0', color:'var(--text3)', fontSize:11 }}>
+                      <Loader2 size={14} className="animate-spin" /> memuat…
+                    </div>
+                  ) : news.length === 0 ? (
+                    <p style={{ padding:'32px 0', textAlign:'center', fontSize:12, color:'var(--text3)' }}>Belum ada berita.</p>
+                  ) : (
+                    news.map((n) => (
+                      <a
+                        key={n.link}
+                        href={n.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setOpen(false)}
+                        style={{ display:'flex', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', cursor:'pointer', textDecoration:'none', color:'var(--text)' }}
+                        className="hoverable"
+                      >
+                        {n.image && <img src={n.image} alt="" loading="lazy" style={{ height:40, width:40, flexShrink:0, objectFit:'cover' }} />}
+                        <div style={{ minWidth:0, flex:1 }}>
+                          <p style={{ fontSize:11, fontWeight:500, lineHeight:1.5 }}>{n.title}</p>
+                          <p style={{ marginTop:2, display:'flex', alignItems:'center', gap:4, fontSize:9, fontFamily:'var(--font-mono)', color:'var(--text3)' }}>
+                            <Clock size={9} /> {timeAgo(n.published)} · buka <ExternalLink size={9} />
+                          </p>
+                        </div>
+                      </a>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </header>
   )

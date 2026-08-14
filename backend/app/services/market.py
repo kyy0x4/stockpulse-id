@@ -58,6 +58,7 @@ def fetch_batch_histories(tickers=None, period="6mo", interval="1d", ttl=600):
                     "volume": _clean(row.get("Volume")),
                 }
                 for _, row in df.iterrows()
+                if _clean(row.get("Close")) is not None
             ]
             out[code] = rows
         except Exception:
@@ -71,7 +72,7 @@ def _clean(value):
     if value is None:
         return None
     if isinstance(value, (np.floating, np.integer)):
-        return float(value)
+        value = float(value)
     if pd.isna(value):
         return None
     return value
@@ -81,17 +82,19 @@ def fetch_history(ticker, period="6mo", interval="1d"):
     t = yf.Ticker(f"{ticker}.JK")
     hist = t.history(period=period, interval=interval, auto_adjust=True, actions=False)
     hist = hist.reset_index()
-    data = [
-        {
+    data = []
+    for _, row in hist.iterrows():
+        close = _clean(row.Close)
+        if close is None:
+            continue
+        data.append({
             "date": row.Date.strftime("%Y-%m-%d") if hasattr(row.Date, "strftime") else str(row.Date),
             "open": _clean(row.Open),
             "high": _clean(row.High),
             "low": _clean(row.Low),
-            "close": _clean(row.Close),
+            "close": close,
             "volume": _clean(row.Volume),
-        }
-        for _, row in hist.iterrows()
-    ]
+        })
     return data
 
 
@@ -197,6 +200,8 @@ def get_price_snapshot(history):
     last = history[-1]
     prev = history[-2] if len(history) > 1 else last
     price = last["close"]
+    if price is None:
+        return None
     prev_close = prev["close"]
     change = ((price - prev_close) / prev_close * 100) if prev_close else 0
     volume = last.get("volume")
