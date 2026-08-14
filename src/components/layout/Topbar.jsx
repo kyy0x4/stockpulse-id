@@ -18,7 +18,7 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)} hari`
 }
 
-export default function Topbar({ onSearch, query, onToggleSidebar, onToggleCollapse, sidebarCollapsed, theme, toggleTheme }) {
+export default function Topbar({ onSearch, query, onToggleSidebar, onToggleCollapse, sidebarCollapsed, theme, toggleTheme, user, onLogout }) {
   const { ihsg } = useIHSG()
   const isDark = theme !== 'light'
   const positive = (ihsg?.change ?? 0) >= 0
@@ -126,6 +126,21 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
       </div>
 
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        {user && (
+          <button
+            onClick={onLogout}
+            title={`${user.email} · klik untuk keluar`}
+            style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid var(--border2)', background:'var(--bg3)', padding:'3px 8px 3px 3px', cursor:'pointer', color:'var(--text)' }}
+          >
+            <span style={{ height:24, width:24, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent)', color:'var(--bg)', fontFamily:'var(--font-display)', fontWeight:800, fontSize:14 }}>
+              {(user.name || user.email || '?').charAt(0).toUpperCase()}
+            </span>
+            <span className="hidden md:block" style={{ fontSize:11, fontFamily:'var(--font-body)', fontWeight:600, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {user.name || user.email}
+            </span>
+          </button>
+        )}
+
         <button
           onClick={toggleTheme}
           style={{ border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)', padding:6, lineHeight:0, cursor:'pointer' }}

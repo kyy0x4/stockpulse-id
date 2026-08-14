@@ -8,13 +8,14 @@ const nav = [
   { id: 'dashboard', label: 'Dashboard', path: '/' },
   { id: 'screener', label: 'Screener', path: '/screener' },
   { id: 'watchlist', label: 'Watchlist', path: '/watchlist' },
+  { id: 'portfolio', label: 'Portfolio', path: '/portfolio' },
   { id: 'market', label: 'Pasar', path: '/market' },
   { id: 'market-pulse', label: 'Market Pulse', path: '/market-pulse' },
   { id: 'news', label: 'News', path: '/news' },
   { id: 'news-impact', label: 'News Impact', path: '/news-impact' },
 ]
 
-export default function Sidebar({ active, onNavigate, open = false, collapsed = false, onClose, theme, toggleTheme, onToggleCollapse }) {
+export default function Sidebar({ active, onNavigate, open = false, collapsed = false, onClose, theme, toggleTheme, onToggleCollapse, user, onLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -121,6 +122,12 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
         </nav>
 
         <div className="p-4 border-t border-line">
+          {user && !collapsed && (
+            <div className="mb-3 px-3 py-2 border border-line bg-card" style={{ borderLeft: '3px solid var(--accent)' }}>
+              <div className="font-mono text-[10px] text-ink truncate">{user.name || user.email}</div>
+              <div className="font-mono text-[9px] text-ink-faint truncate tracking-[0.08em]">{user.email}</div>
+            </div>
+          )}
           <button
             onClick={toggleTheme}
             className={`w-full flex items-center gap-2 px-3 py-1.5 mb-3 border border-line-strong bg-elevated text-ink-soft font-mono text-[10px] tracking-[0.06em] transition-colors cursor-pointer ${collapsed ? 'justify-center' : ''}`}
@@ -128,6 +135,16 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
             <span className="text-[13px]">{theme === 'dark' ? '☼' : '◗'}</span>
             {!collapsed && (theme === 'dark' ? 'LIGHT MODE' : 'DARK MODE')}
           </button>
+          {user && (
+            <button
+              onClick={onLogout}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 mb-3 border border-line bg-card text-ink-soft font-mono text-[10px] tracking-[0.06em] transition-colors cursor-pointer hover:text-ink ${collapsed ? 'justify-center' : ''}`}
+              style={{ color: 'var(--down)' }}
+            >
+              <span className="text-[12px]">⎋</span>
+              {!collapsed && 'LOG OUT'}
+            </button>
+          )}
           {!collapsed && <div className="font-mono text-[9px] text-ink-faint tracking-[0.08em]">IDX LIVE · 16:00 WIB</div>}
         </div>
       </motion.aside>

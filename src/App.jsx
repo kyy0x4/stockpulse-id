@@ -5,6 +5,9 @@ import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
 import TickerTape from './components/layout/TickerTape'
 import StockDetailPage from './pages/StockDetailPage'
+import AuthPage from './pages/AuthPage'
+import { AuthProvider, useAuth } from './auth/AuthContext'
+import { accountApi } from './api/auth'
 import { useTheme } from './theme/ThemeProvider'
 import { useStocks } from './hooks/useStocks'
 import { stocks as mockStocks } from './data/stocks'
@@ -17,21 +20,7 @@ const MarketPage = lazy(() => import('./pages/MarketPage'))
 const NewsPage = lazy(() => import('./pages/NewsPage'))
 const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
 const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
-
-const FAV_KEY = 'stockpulse-favorites'
-
-function loadFavorites() {
-  try {
-    const raw = localStorage.getItem(FAV_KEY)
-    if (raw) {
-      const arr = JSON.parse(raw)
-      if (Array.isArray(arr) && arr.every((t) => typeof t === 'string')) return arr
-    }
-  } catch {
-    /* ignore */
-  }
-  return []
-}
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'))
 
 function PageWrapper({ children }) {
   return (
@@ -86,7 +75,7 @@ function StockDetailRoute({ stocks, favorites, onToggleFav, theme }) {
   )
 }
 
-function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usingMock }) {
+function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usingMock, user, onLogout }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -125,6 +114,8 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
         theme={theme}
         toggleTheme={toggleTheme}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+        user={user}
+        onLogout={onLogout}
       />
 
       <div className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-300 ${sidebarCollapsed ? 'xl:ml-[88px]' : 'xl:ml-[264px]'}`}>
@@ -136,6 +127,8 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
           sidebarCollapsed={sidebarCollapsed}
           theme={theme}
           toggleTheme={toggleTheme}
+          user={user}
+          onLogout={onLogout}
         />
 
         <TickerTape stocks={data} />
@@ -176,6 +169,7 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
                   <Route path="/news" element={<NewsPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
                   <Route path="/market-pulse" element={<MarketPulsePage stocks={data} theme={theme} />} />
                   <Route path="/news-impact" element={<NewsImpactPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
+                  <Route path="/portfolio" element={<PortfolioPage stocks={data} onSelectStock={openDetail} />} />
                   <Route path="/stock/:ticker" element={<StockDetailRoute stocks={data} favorites={favorites} onToggleFav={toggleFav} theme={theme} />} />
                   <Route path="*" element={<DashboardPage
                     stocks={data}
@@ -195,42 +189,74 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
   )
 }
 
-export default function App() {
-  const [favorites, setFavorites] = useState(loadFavorites)
+function Splash() {
+  return (
+    <div className="fixed inset-0 grid-bg flex flex-col items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-up/20 border-t-up" />
+      <div style={{ marginTop: 14, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.3em', color: 'var(--text3)' }}>
+        PLOTFINANSIAL
+      </div>
+    </div>
+  )
+}
+
+function Root() {
+  const { user, initializing, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { stocks, loading, usingMock } = useStocks()
+  const [favorites, setFavorites] = useState([])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(FAV_KEY, JSON.stringify(favorites))
-    } catch {
-      /* ignore */
+    if (user) {
+      accountApi
+        .watchlist()
+        .then((r) => setFavorites(r.tickers || []))
+        .catch(() => setFavorites([]))
+    } else {
+      setFavorites([])
     }
-  }, [favorites])
-
-  useEffect(() => {
-    if (favorites.length === 0 && stocks.length > 0) {
-      setFavorites(stocks.slice(0, 3).map((s) => s.ticker))
-    }
-  }, [stocks, favorites])
+  }, [user])
 
   const toggleFav = (ticker) => {
-    setFavorites((prev) =>
-      prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
+    setFavorites((prev) => {
+      const on = !prev.includes(ticker)
+      const next = on ? [...prev, ticker] : prev.filter((t) => t !== ticker)
+      ;(on ? accountApi.addWatch(ticker) : accountApi.removeWatch(ticker)).catch(() => {})
+      return next
+    })
+  }
+
+  if (initializing) return <Splash />
+
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="*" element={<AuthPage />} />
+      </Routes>
     )
   }
 
   return (
-    <BrowserRouter>
-      <Shell
-        favorites={favorites}
-        toggleFav={toggleFav}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        stocks={stocks}
-        loading={loading}
-        usingMock={usingMock}
-      />
-    </BrowserRouter>
+    <Shell
+      favorites={favorites}
+      toggleFav={toggleFav}
+      theme={theme}
+      toggleTheme={toggleTheme}
+      stocks={stocks}
+      loading={loading}
+      usingMock={usingMock}
+      user={user}
+      onLogout={logout}
+    />
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Root />
+      </BrowserRouter>
+    </AuthProvider>
   )
 }

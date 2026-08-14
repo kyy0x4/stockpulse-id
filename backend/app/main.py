@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.stocks import router as stocks_router
 from app.routers.cron import router as cron_router
+from app.routers.auth import router as auth_router
+from app.routers.account import router as account_router
 
 app = FastAPI(
     title="PlotFinansial API",
@@ -19,6 +21,8 @@ app.add_middleware(
 
 app.include_router(stocks_router)
 app.include_router(cron_router)
+app.include_router(auth_router)
+app.include_router(account_router)
 
 
 @app.get("/")
