@@ -145,8 +145,9 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="fixed inset-0 grid-bg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div className="fade-up" style={{ width: '100%', maxWidth: 400 }}>
+    <div className="fixed inset-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="fixed inset-0 grid-bg pointer-events-none" aria-hidden="true" />
+      <div className="fade-up" style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.3em', color: 'var(--text3)', marginBottom: 6 }}>
             BURSA EFEK INDONESIA · REAL-TIME
