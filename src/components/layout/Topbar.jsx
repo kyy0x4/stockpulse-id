@@ -33,8 +33,10 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
     }
   })
   const [open, setOpen] = useState(false)
+  const [userOpen, setUserOpen] = useState(false)
   const [loadingNews, setLoadingNews] = useState(true)
   const panelRef = useRef(null)
+  const userMenuRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -69,6 +71,7 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
   useEffect(() => {
     const onClick = (e) => {
       if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
@@ -127,18 +130,43 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
 
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         {user && (
-          <button
-            onClick={onLogout}
-            title={`${user.email} · klik untuk keluar`}
-            style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid var(--border2)', background:'var(--bg3)', padding:'3px 8px 3px 3px', cursor:'pointer', color:'var(--text)' }}
-          >
-            <span style={{ height:24, width:24, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent)', color:'var(--bg)', fontFamily:'var(--font-display)', fontWeight:800, fontSize:14 }}>
-              {(user.name || user.email || '?').charAt(0).toUpperCase()}
-            </span>
-            <span className="hidden md:block" style={{ fontSize:11, fontFamily:'var(--font-body)', fontWeight:600, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {user.name || user.email}
-            </span>
-          </button>
+          <div ref={userMenuRef} style={{ position:'relative' }}>
+            <button
+              onClick={() => setUserOpen((v) => !v)}
+              title={`${user.email}`}
+              style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid var(--border2)', background:'var(--bg3)', padding:'3px 8px 3px 3px', cursor:'pointer', color:'var(--text)' }}
+            >
+              <span style={{ height:24, width:24, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent)', color:'var(--bg)', fontFamily:'var(--font-display)', fontWeight:800, fontSize:14 }}>
+                {(user.name || user.email || '?').charAt(0).toUpperCase()}
+              </span>
+              <span className="hidden md:block" style={{ fontSize:11, fontFamily:'var(--font-body)', fontWeight:600, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {user.name || user.email}
+              </span>
+            </button>
+            <AnimatePresence>
+              {userOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  style={{ position:'absolute', right:0, top:'calc(100% + 8px)', minWidth:220, background:'var(--bg2)', border:'1px solid var(--border2)', overflow:'hidden' }}
+                >
+                  <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'var(--text)' }}>{user.name || 'Pengguna'}</div>
+                    <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--text3)', marginTop:2, wordBreak:'break-all' }}>{user.email}</div>
+                  </div>
+                  <button
+                    onClick={onLogout}
+                    style={{ display:'block', width:'100%', textAlign:'left', padding:'9px 14px', border:'none', background:'none', color:'var(--down)', fontSize:11, fontFamily:'var(--font-mono)', letterSpacing:'0.06em', cursor:'pointer' }}
+                    className="hoverable"
+                  >
+                    ⎋ LOG OUT
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
 
         <button
