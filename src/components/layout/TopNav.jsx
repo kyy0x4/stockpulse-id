@@ -8,6 +8,8 @@ import {
 import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
 import { supabase } from '../../api/supabase'
+import myLogo from '../../images/myLogo.png'
+import brandLogo from '../../images/Logo MarketIQ Biru-Toska.png'
 
 const NOTIF_KEY = 'stockpulse-notif-seen'
 
@@ -109,8 +111,10 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
         </div>
 
         <div className="topnav-brand" onClick={() => go({ id: 'dashboard', path: '/' })}>
-          <div className="topnav-brand-mark">P</div>
-          <div className="topnav-brand-text">Pulse<span>Terminal</span></div>
+          <img src={brandLogo} alt="MarketIQ" className="topnav-brand-img" />
+          <div className="topnav-brand-text">
+            MARKET<span className="brand-iq">IQ</span>
+          </div>
         </div>
 
         <nav className="topnav-links">
@@ -355,8 +359,10 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <div className="topnav-brand-mark">P</div>
-                  <div className="topnav-brand-text">Pulse<span>Terminal</span></div>
+                  <img src={brandLogo} alt="MarketIQ" className="topnav-brand-img" />
+                  <div className="topnav-brand-text">
+                    MARKET<span className="brand-iq">IQ</span>
+                  </div>
                 </div>
                 <button className="icon-btn" onClick={() => setDrawer(false)} aria-label="Tutup"><X size={17} /></button>
               </div>

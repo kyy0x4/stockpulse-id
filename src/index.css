@@ -2,35 +2,40 @@
 @import 'tailwindcss';
 
 /* ══════════════════════════════════════════════════════════════
-   THEME TOKENS — CoinGlass-style dark surface + Claude Amber
+   THEME TOKENS — MARKETIQ palette (Blue/Cyan/Turquoise)
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #0b0e14;
-  --bg2: #11151d;
-  --bg3: #161b25;
-  --bg4: #1c2330;
-  --border: #1f2733;
-  --border2: #2b3543;
-  --text: #e9eef7;
-  --text2: #9aa6b6;
-  --text3: #5d6a7c;
+  /* Surfaces — MARKETIQ dark slate */
+  --bg: #030D1E;
+  --bg2: #1A2638;
+  --bg3: #0F1724;
+  --bg4: #1A2638;
+  --border: #2A3A52;
+  --border2: #3A4E66;
+  --text: #F3F5F9;
+  --text2: #8CA6D9;
+  --text3: #5A6C84;
 
-  /* Amber / gold primary (Claude amber, tuned for dark data UI) */
-  --accent: #f0b90b;
-  --accent-2: #ffd666;
-  --accent-dim: rgba(240, 185, 11, 0.10);
-  --accent-line: rgba(240, 185, 11, 0.35);
-  --glow: rgba(240, 185, 11, 0.30);
+  /* MARKETIQ primary gradient colors (brand uses turquoise) */
+  --primary: #22E3D5;
+  --cyan: #0DC4E9;
+  --turquoise: #22E3D5;
+  --accent: #22E3D5; /* Primary brand color */
+  --accent-2: #0DC4E9;
+  --accent-3: #0783F7;
+  --accent-dim: rgba(34, 227, 213, 0.10);
+  --accent-line: rgba(34, 227, 213, 0.35);
+  --glow: rgba(11, 196, 233, 0.25);
 
-  /* Market direction — CoinGlass palette */
-  --up: #0ecb81;
-  --up-dim: rgba(14, 203, 129, 0.12);
-  --down: #f6465d;
-  --down-dim: rgba(246, 70, 93, 0.12);
-  --hold: #f7a600;
-  --hold-dim: rgba(247, 166, 0, 0.12);
+  /* Market direction — MARKETIQ supporting colors */
+  --up: #22E3D5;
+  --up-dim: rgba(34, 227, 213, 0.15);
+  --down: #F44336;
+  --down-dim: rgba(244, 67, 54, 0.15);
+  --hold: #FFB74D;
+  --hold-dim: rgba(255, 183, 77, 0.15);
 
-  --overlay: rgba(4, 6, 10, 0.72);
+  --overlay: rgba(4, 13, 30, 0.75);
 
   --font-display: 'Inter', sans-serif;
   --font-mono: 'DM Mono', ui-monospace, monospace;
@@ -43,30 +48,34 @@
 }
 
 [data-theme="light"] {
-  --bg: #f5f6fa;
+  --bg: #FBFBFB;
   --bg2: #ffffff;
-  --bg3: #eef0f5;
-  --bg4: #e5e8ef;
-  --border: #e3e6ee;
-  --border2: #d0d5e0;
-  --text: #0f1419;
-  --text2: #5b6472;
-  --text3: #8b94a3;
+  --bg3: #F5F6FA;
+  --bg4: #E8EDF5;
+  --border: #E8EDF5;
+  --border2: #D1D9E8;
+  --text: #030D1E;
+  --text2: #425879;
+  --text3: #5A6C84;
 
-  --accent: #b98200;
-  --accent-2: #d99e00;
-  --accent-dim: rgba(185, 130, 0, 0.10);
-  --accent-line: rgba(185, 130, 0, 0.35);
-  --glow: rgba(185, 130, 0, 0.25);
+  --primary: #22E3D5;
+  --cyan: #0DC4E9;
+  --turquoise: #22E3D5;
+  --accent: #22E3D5;
+  --accent-2: #0DC4E9;
+  --accent-3: #0783F7;
+  --accent-dim: rgba(34, 227, 213, 0.10);
+  --accent-line: rgba(34, 227, 213, 0.35);
+  --glow: rgba(11, 196, 233, 0.25);
 
-  --up: #089981;
-  --up-dim: rgba(8, 153, 129, 0.10);
-  --down: #e5344a;
-  --down-dim: rgba(229, 52, 74, 0.10);
-  --hold: #c47d00;
-  --hold-dim: rgba(196, 125, 0, 0.10);
+  --up: #22E3D5;
+  --up-dim: rgba(34, 227, 213, 0.15);
+  --down: #F44336;
+  --down-dim: rgba(244, 67, 54, 0.15);
+  --hold: #FFB74D;
+  --hold-dim: rgba(255, 183, 77, 0.15);
 
-  --overlay: rgba(15, 20, 25, 0.35);
+  --overlay: rgba(245, 246, 250, 0.85);
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-pop: 0 16px 40px -12px rgba(15, 23, 42, 0.25);
 }
@@ -144,35 +153,33 @@ html, body, #root {
 .topnav-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex-shrink: 0;
   margin-right: 8px;
   cursor: pointer;
   user-select: none;
+  transition: gap 0.15s;
 }
 
-.topnav-brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #e09b00);
-  color: #0b0e14;
-  font-weight: 800;
-  font-size: 15px;
-  box-shadow: 0 0 0 1px var(--accent-line), 0 4px 14px -4px var(--glow);
+.topnav-brand-img {
+  height: 26px;
+  width: auto;
+  object-fit: contain;
 }
 
 .topnav-brand-text {
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.02em;
-  color: var(--text);
+  color: #000000;
   white-space: nowrap;
 }
-.topnav-brand-text span { color: var(--accent); }
+.topnav-brand-text .brand-iq {
+  color: #22E3D5;
+}
+[data-theme="dark"] .topnav-brand-text {
+  color: #FBFBFB;
+}
 @media (max-width: 900px) {
   .topnav-brand-text { display: none; }
 }

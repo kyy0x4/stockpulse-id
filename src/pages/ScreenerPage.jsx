@@ -158,7 +158,7 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
       {/* Toolbar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginRight: 2 }}>SEKTOR</span>
+          <span className="hide-sm" style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginRight: 2 }}>SEKTOR</span>
           {sectors.map((s) => (
             <button key={s} className={`pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)} style={{ height: 25, fontSize: 11.5 }}>
               {s === 'All' ? 'Semua' : s}

@@ -64,16 +64,10 @@ export default function MarketPulsePage({ stocks = [], onSelectStock }) {
 
   return (
     <div className="fade-up">
-      <PH eyebrow="Real-time global market flow" title="Market Pulse" />
+      <PH eyebrow="Global market flow" title="Market Pulse" />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-        <span style={{ fontSize: 12, color: 'var(--text2)' }}>Data real dari S&amp;P 500 dan seluruh aset yang tampil.</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            {loading ? 'Syncing data…' : 'Live market read'}
-          </span>
-        </span>
+        <span style={{ fontSize: 12, color: 'var(--text2)' }}>Data real-time dari S&amp;P 500 dan seluruh aset.</span>
       </div>
 
       <div className="stat-grid">
