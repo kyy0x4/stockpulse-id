@@ -5,3 +5,5 @@ pandas
 numpy
 supabase
 pyjwt
+requests
+twelvedata

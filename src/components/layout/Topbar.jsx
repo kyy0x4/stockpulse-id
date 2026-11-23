@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, Search, TrendingUp, Menu, Sun, Moon, Newspaper, Loader2, X, ExternalLink, Clock, Wifi } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useIHSG } from '../../hooks/useIHSG'
+import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
 import { supabase } from '../../api/supabase'
 
@@ -19,9 +19,9 @@ function timeAgo(iso) {
 }
 
 export default function Topbar({ onSearch, query, onToggleSidebar, onToggleCollapse, sidebarCollapsed, theme, toggleTheme, user, onLogout }) {
-  const { ihsg } = useIHSG()
+  const { index: spx } = useMarketIndex('SPX')
   const isDark = theme !== 'light'
-  const positive = (ihsg?.change ?? 0) >= 0
+  const positive = (spx?.change ?? 0) >= 0
   const ThemeIcon = isDark ? Sun : Moon
 
   const [news, setNews] = useState([])
@@ -41,7 +41,7 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
   useEffect(() => {
     let alive = true
     const load = () => {
-      api.news('market', 8)
+      api.news('all', 8)
         .then((res) => {
           if (!alive) return
           setNews(res.items || [])
@@ -110,7 +110,7 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
         <input
           value={query}
           onChange={(e) => onSearch?.(e.target.value)}
-          placeholder="Cari saham (BBCA, BBRI, ...)"
+          placeholder="Cari aset (AAPL, NVDA, BTC, ...)"
           style={{
             width:'100%', background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--text)',
             padding:'5px 12px 5px 30px', fontSize:12, fontFamily:'var(--font-body)', outline:'none',
@@ -120,8 +120,8 @@ export default function Topbar({ onSearch, query, onToggleSidebar, onToggleColla
 
       <div style={{ marginLeft:'auto', display:'none', alignItems:'center', gap:8, fontSize:11, fontFamily:'var(--font-mono)' }} className="lg:flex">
         <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--border2)', background:'var(--bg3)', color: positive ? 'var(--up)' : 'var(--down)' }}>
-          <TrendingUp size={13} /> IHSG {(ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-          <span>{positive ? '+' : ''}{(ihsg?.change ?? 0).toLocaleString('id-ID')}%</span>
+          <TrendingUp size={13} /> S&P 500 {(spx?.price ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+          <span>{positive ? '+' : ''}{(spx?.change ?? 0).toLocaleString('en-US')}%</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--text2)' }}>
           <Wifi size={13} style={{ color: supabase ? 'var(--up)' : 'var(--text3)' }} /> {supabase ? 'LIVE' : 'REFRESH'}

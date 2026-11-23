@@ -10,16 +10,17 @@ export function useStocks() {
   const [usingMock, setUsingMock] = useState(false)
   const [error, setError] = useState(null)
 
-  const load = useCallback(async ({ sector, signal, minScore, q } = {}) => {
+  const load = useCallback(async ({ sector, signal, minScore, q, kind } = {}) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.list(sector, signal, minScore, q)
+      const res = await api.list(sector, signal, minScore, q, kind)
       setStocks(res.stocks.map(adaptStock))
       setUsingMock(false)
     } catch (err) {
       console.warn('Backend tidak tersedia, pakai data mock:', err.message)
       let filtered = mockStocks
+      if (kind && kind !== 'all') filtered = filtered.filter((s) => s.kind === kind)
       if (sector && sector !== 'Semua') filtered = filtered.filter((s) => s.sector === sector)
       if (signal && signal !== 'Semua') filtered = filtered.filter((s) => s.signal === signal)
       if (minScore) filtered = filtered.filter((s) => s.composite >= minScore)

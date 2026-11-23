@@ -10,6 +10,7 @@ const nav = [
   { id: 'watchlist', label: 'Watchlist', path: '/watchlist' },
   { id: 'portfolio', label: 'Portfolio', path: '/portfolio' },
   { id: 'market', label: 'Pasar', path: '/market' },
+  { id: 'macro', label: 'Macro', path: '/macro' },
   { id: 'market-pulse', label: 'Market Pulse', path: '/market-pulse' },
   { id: 'news', label: 'News', path: '/news' },
   { id: 'news-impact', label: 'News Impact', path: '/news-impact' },
@@ -60,7 +61,7 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
                 <motion.img
                   key="logo"
                   src={logoUrl}
-                  alt="PlotFinansial"
+                  alt="PulseTerminal"
                   draggable={false}
                   initial={{ opacity: 0, scale: 0.82, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -78,10 +79,10 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
                   className="text-center"
                 >
                   <p className="font-display text-[28px] leading-none font-extrabold tracking-tight">
-                    Plot<span className="text-accent">Finansial</span>
+                    Pulse<span className="text-accent">Terminal</span>
                   </p>
                   <p className="font-mono text-[9px] mt-1 text-ink-soft tracking-[0.12em]">
-                    ANALISA FUNDAMENTAL + TEKNIKAL
+                    SAHAM AS · KRIPTO · MAKRO
                   </p>
                 </motion.div>
               )}
@@ -145,7 +146,7 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
               {!collapsed && 'LOG OUT'}
             </button>
           )}
-          {!collapsed && <div className="font-mono text-[9px] text-ink-faint tracking-[0.08em]">IDX LIVE · 16:00 WIB</div>}
+          {!collapsed && <div className="font-mono text-[9px] text-ink-faint tracking-[0.08em]">US 21:30 WIB · KRIPTO 24/7</div>}
         </div>
       </motion.aside>
     </>

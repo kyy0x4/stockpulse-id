@@ -14,6 +14,25 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 
 
+def _parse_metric(metrics, key):
+    """Parse metric value from metrics dict (may be string like '142.3%', float, or None)."""
+    if metrics is None:
+        return None
+    val = metrics.get(key)
+    if val is None:
+        return None
+    try:
+        # Handle string values like "142.3%" - convert to decimal (0.1423)
+        s = str(val).replace("%", "").replace(",", "")
+        v = float(s)
+        # Jika nilai besar (> 10), kemungkinan dalam persen, konversi ke desimal
+        if v > 10 and key in ("roe", "roa"):
+            return v / 100
+        return v
+    except (TypeError, ValueError):
+        return None
+
+
 def _score_dir(value, direction, good, mid, bad, default=30, score_good=95, score_mid=65, score_bad=40, score_low=20):
     """Skor value berdasarkan arah (">": semakin besar semakin baik, "<": kebalikan)."""
     if value is None:
@@ -51,6 +70,18 @@ def score_fundamental(info):
     market_cap = info.get("market_cap")
     target_price = info.get("target_mean_price")
     price = info.get("price") or _price_from_history(info)
+
+    # Fallback: parse metrics jika nilai utama None
+    if roe is None:
+        roe = _parse_metric(info.get("metrics", {}), "roe")
+    if roa is None:
+        roa = _parse_metric(info.get("metrics", {}), "roa")
+    if der is None:
+        der = _parse_metric(info.get("metrics", {}), "der")
+    if growth is None:
+        growth = _parse_metric(info.get("metrics", {}), "growth")
+    if rev_growth is None:
+        rev_growth = _parse_metric(info.get("metrics", {}), "revenue_growth")
 
     # --- 1. QUALITY (35%) --------------------------------------------------
     # ROIC tidak tersedia langsung dari Yahoo summary; gunakan proksi
@@ -175,6 +206,121 @@ def _price_from_history(info):
         return info["audit_raw"].get("currentPrice") or info["audit_raw"].get("regularMarketPrice")
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Kripto & ETF: "market profile" (pengganti fundamental)
+# ---------------------------------------------------------------------------
+# Kripto spot dan ETF tidak punya laporan keuangan seperti emiten. Lapisan
+# non-teknis diisi oleh profil pasar: momentum (30/90 hari & 1 tahun),
+# drawdown dari puncak 52 minggu, dan ukuran/likuiditas (market cap tier).
+
+
+def score_market_profile(info, history):
+    closes = [float(r["close"]) for r in (history or []) if r.get("close") is not None]
+    if len(closes) < 30:
+        return {
+            "score": None,
+            "rating": "Data tidak cukup",
+            "components": {},
+            "pillars": {},
+            "metrics": {},
+        }
+    price = closes[-1]
+
+    def _ret(n):
+        if len(closes) <= n:
+            return None
+        prev = closes[-1 - n]
+        return (price - prev) / prev if prev else None
+
+    r30, r90, r365 = _ret(30), _ret(90), _ret(365)
+    window = closes[-365:] if len(closes) >= 365 else closes
+    high = max(window)
+    drawdown = (price - high) / high if high else None
+    market_cap = info.get("market_cap")
+
+    momentum = {
+        "Return 30 hari": _score_dir(r30, ">", 0.15, 0.03, -0.05, default=50),
+        "Return 90 hari": _score_dir(r90, ">", 0.30, 0.08, -0.10, default=50),
+        "Return 1 tahun": _score_dir(r365, ">", 0.50, 0.10, -0.20, default=50),
+    }
+    drawdown_block = {
+        "Drawdown dari puncak": _score_dir(drawdown, ">", -0.10, -0.25, -0.50, default=50),
+    }
+    liquidity = {
+        "Market cap": _crypto_size_score(market_cap),
+    }
+
+    m_score = sum(momentum.values()) / len(momentum)
+    d_score = sum(drawdown_block.values()) / len(drawdown_block)
+    l_score = sum(liquidity.values()) / len(liquidity)
+
+    total = round(m_score * 0.45 + d_score * 0.30 + l_score * 0.25)
+    total = max(0, min(100, total))
+
+    if total >= 80:
+        rating = "sangat kuat"
+    elif total >= 65:
+        rating = "kuat"
+    elif total >= 50:
+        rating = "netral"
+    elif total >= 35:
+        rating = "lemah"
+    else:
+        rating = "sangat lemah"
+
+    return {
+        "score": total,
+        "rating": rating,
+        "components": {
+            **{k: v for k, v in sorted(momentum.items(), key=lambda x: -x[1])},
+            **{k: v for k, v in sorted(drawdown_block.items(), key=lambda x: -x[1])},
+            **{k: v for k, v in sorted(liquidity.items(), key=lambda x: -x[1])},
+        },
+        "pillars": {
+            "Momentum": round(m_score),
+            "Drawdown": round(d_score),
+            "Likuiditas": round(l_score),
+        },
+        "metrics": {
+            "return_30d": _pct(r30, 1),
+            "return_90d": _pct(r90, 1),
+            "return_1y": _pct(r365, 1),
+            "drawdown_52w": _pct(drawdown, 1),
+            "market_cap": _fmt_cap(market_cap),
+        },
+    }
+
+
+def _crypto_size_score(market_cap):
+    if not market_cap:
+        return 50
+    if market_cap >= 200e9:
+        return 95
+    if market_cap >= 50e9:
+        return 85
+    if market_cap >= 10e9:
+        return 70
+    if market_cap >= 1e9:
+        return 55
+    return 40
+
+
+def _fmt_cap(value):
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if v >= 1e12:
+        return f"{v / 1e12:.2f} T"
+    if v >= 1e9:
+        return f"{v / 1e9:.1f} B"
+    if v >= 1e6:
+        return f"{v / 1e6:.0f} M"
+    return f"{v:,.0f}"
 
 
 # ---------------------------------------------------------------------------
@@ -532,9 +678,29 @@ def _vol_score(ratio):
     return 30
 
 
-def combined_signal(fund, tech):
+def combined_signal(fund, tech, kind="equity"):
     f = fund.get("score")
     t = tech.get("score")
+
+    # Kripto & ETF: tidak ada fundamental, jadi bobot ke teknikal lebih besar.
+    if kind in ("crypto", "etf"):
+        if f is None and t is None:
+            return {"signal": "HOLD", "composite": None}
+        if t is None:
+            t = f
+        if f is None:
+            composite = round(t)
+            signal = "BUY" if t >= 70 else "HOLD" if t >= 50 else "SELL"
+            return {"signal": signal, "composite": composite}
+        composite = round(f * 0.45 + t * 0.55)
+        if t >= 70 and f >= 60:
+            signal = "BUY"
+        elif t >= 50 and f >= 45:
+            signal = "HOLD"
+        else:
+            signal = "SELL"
+        return {"signal": signal, "composite": composite}
+
     if f is None or t is None:
         return {"signal": "HOLD", "composite": None}
 

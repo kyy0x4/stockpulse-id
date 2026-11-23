@@ -1,4 +1,4 @@
-"""Autentikasi PlotFinansial.
+"""Autentikasi PulseTerminal.
 
 Dua alur masuk:
 1. Email + password — aktivasi lewat kode OTP 6 digit yang dikirim via Resend
@@ -27,7 +27,7 @@ URL = os.getenv("SUPABASE_URL", "").strip()
 ANON_KEY = os.getenv("SUPABASE_ANON_KEY", os.getenv("SUPABASE_SERVICE_KEY", "")).strip()
 AUTH_SECRET = os.getenv("AUTH_SECRET", "").strip()
 RESEND_KEY = os.getenv("RESEND_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", "PlotFinansial <noreply@plotfinansial.com>").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "PulseTerminal <noreply@plotfinansial.com>").strip()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 hari
@@ -126,17 +126,16 @@ def _client():
 def _get_profile(profile_id: str):
     try:
         res = _client().table("profiles").select("*").eq("id", str(profile_id)).maybe_single().execute()
-        return res.data if res.data else None
+        return res.data if res and res.data else None
     except Exception:
         return None
 
 
 def _get_profile_by_email(email: str):
-    try:
-        res = _client().table("profiles").select("*").eq("email", email.lower()).maybe_single().execute()
-        return res.data if res.data else None
-    except Exception:
-        return None
+    # Jangan telan error koneksi: login harus membedakan "user tidak ada" dari
+    # "database tidak bisa diakses", bukan selalu bilang password salah.
+    res = _client().table("profiles").select("*").eq("email", email.lower()).maybe_single().execute()
+    return res.data if res and res.data else None
 
 
 # --------------------------------------------------------------------------- #
@@ -144,7 +143,7 @@ def _get_profile_by_email(email: str):
 # --------------------------------------------------------------------------- #
 def build_verification_email(name: str, code: str):
     first = name.strip().split(" ")[0] if name and name.strip() else "Trader"
-    app_name = "PLOTFINANSIAL"
+    app_name = "PULSETERMINAL"
     return f"""<!doctype html>
 <html lang="id">
   <head>
@@ -158,7 +157,7 @@ def build_verification_email(name: str, code: str):
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
           <tr><td style="padding:0 0 24px;text-align:center;">
             <div style="font-family:monospace;font-size:10px;letter-spacing:6px;color:#44444c;text-transform:uppercase;margin-bottom:6px;">
-              BURSA EFEK INDONESIA &middot; REAL-TIME
+              SAHAM AS &middot; KRIPTO &middot; REAL-TIME
             </div>
             <div style="font-family:'Arial Black',Arial,sans-serif;font-size:30px;font-weight:900;letter-spacing:2px;color:#eeebe4;">
               {app_name}
@@ -205,7 +204,7 @@ def send_verification_email(to: str, name: str, code: str) -> bool:
             json={
                 "from": EMAIL_FROM,
                 "to": [to],
-                "subject": f"[{code}] Kode verifikasi PlotFinansial",
+                "subject": f"[{code}] Kode verifikasi PulseTerminal",
                 "html": build_verification_email(name, code),
             },
             timeout=15,

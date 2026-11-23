@@ -1,8 +1,8 @@
 """Cron endpoints untuk polling intraday & end-of-day.
 
-Polling tiap menit (jam bursa WIB) → refresh cache + upsert ke Supabase,
-sehingga perubahan tabel stock_quotes dipush realtime ke frontend.
-EOD 15:55 WIB → simpan bar harian ke stock_history.
+Polling tiap menit (sesi NYSE dalam WIB; kripto 24/7) → refresh cache +
+upsert ke Supabase, sehingga perubahan tabel stock_quotes dipush realtime
+ke frontend. EOD setelah sesi AS tutup → simpan bar harian ke stock_history.
 
 Dijadwalkan gratis via **Supabase Scheduled Functions** (pg_cron) atau
 cron-job.org/UptimeRobot — lihat README.
@@ -12,7 +12,7 @@ from datetime import datetime, time, timedelta
 
 from fastapi import APIRouter
 
-from app.data.tickers import ALL_TICKERS
+from app.data.tickers import NEW_ASSET_TICKERS
 from app.services import supabase as db
 from app.services.cache import get, set as cache_set
 from app.services.jsonutil import sanitize
@@ -22,9 +22,11 @@ import app.services.analysis_runner as runner
 router = APIRouter(prefix="/api/cron", tags=["cron"])
 
 WIB = 7  # UTC offset jam
-STOCK_FULL_START = time(9, 0)    # 09:00 WIB
-STOCK_FULL_END = time(15, 55)    # 15:55 WIB
-EOD_HOUR = time(15, 50)          # mulai proses akhir 15:50 WIB
+# Sesi saham AS dalam WIB (NYSE 09:30–16:00 ET)
+US_START = time(21, 30)
+US_END = time(4, 0)
+# Kripto diperdagangkan 24/7, jadi polling tidak pernah benar-benar tutup.
+CRYPTO_ALWAYS = True
 
 
 def _wib_now():
@@ -35,8 +37,15 @@ def _is_weekday(dt):
     return dt.weekday() < 5
 
 
-def _position(dt):
-    return dt.time()
+def _us_market_open(dt):
+    """Sesi saham AS (09:30–16:00 ET) dikonversi ke WIB (UTC+7)."""
+    t = dt.time()
+    if dt.weekday() < 5 and t >= US_START:
+        return True
+    # 00:00–04:00 WIB = sore hari sebelumnya di ET
+    if dt.weekday() < 6 and t <= US_END:
+        return True
+    return False
 
 
 def _poll_async():
@@ -69,7 +78,7 @@ def _eod_async():
             print(f"[cron] eod (tanpa supabase): {len(results)} stocks")
             return
 
-        histories = fetch_batch_histories(ALL_TICKERS, period="1y")
+        histories = fetch_batch_histories(NEW_ASSET_TICKERS, period="1y")
         pushed_hist = 0
         for ticker, rows in histories.items():
             pushed_hist += db.upsert_history(ticker, rows)
@@ -85,24 +94,23 @@ def _eod_async():
 
 @router.get("/poll")
 def cron_poll():
-    """Dipanggil tiap ~1 menit saat jam bursa. No-op di luar jam/minggu."""
+    """Dipanggil tiap ~1 menit. Kripto 24/7; saham AS mengikuti sesi NYSE."""
     now = _wib_now()
-    if not _is_weekday(now):
-        return {"polled": False, "reason": "weekend", "wib": now.isoformat()}
-    if not (STOCK_FULL_START <= _position(now) <= STOCK_FULL_END):
-        return {"polled": False, "reason": "off-hours", "wib": now.isoformat()}
+    us_open = _us_market_open(now)
+    if not CRYPTO_ALWAYS and not us_open:
+        return {"polled": False, "reason": "off-hours", "us_market_open": us_open, "wib": now.isoformat()}
 
     import threading
     threading.Thread(target=_poll_async, daemon=True).start()
-    return {"polled": True, "wib": now.isoformat()}
+    return {"polled": True, "us_market_open": us_open, "wib": now.isoformat()}
 
 
 @router.get("/eod")
 def cron_eod():
-    """Dipanggil ~15:50 WIB tiap hari bursa: simpan history + quotes final."""
+    """Dipanggil setelah sesi AS tutup: simpan history + quotes final."""
     now = _wib_now()
-    if not _is_weekday(now):
-        return {"eod": False, "reason": "weekend", "wib": now.isoformat()}
+    if not _us_market_open(now):
+        return {"eod": False, "reason": "off-hours", "wib": now.isoformat()}
 
     import threading
     threading.Thread(target=_eod_async, daemon=True).start()
@@ -126,7 +134,8 @@ def cron_status():
     return {
         "wib": dt.isoformat(),
         "weekday": _is_weekday(dt),
-        "in_market_hours": _is_weekday(dt) and STOCK_FULL_START <= _position(dt) <= STOCK_FULL_END,
+        "us_market_open": _us_market_open(dt),
+        "crypto_market_open": True,
         "supabase": bool(db.available()),
         "quotes_in_supabase": quotes_count,
         "history_rows_in_supabase": history_count,

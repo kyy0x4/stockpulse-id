@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Card from '../ui/Card'
-import { SlidersHorizontal, RotateCcw, BookmarkPlus, Bookmark, Trash2 } from 'lucide-react'
+import { SlidersHorizontal, RotateCcw, BookmarkPlus, Bookmark, Trash2, Filter, BarChart3 } from 'lucide-react'
 import { api } from '../../api/client'
 
-const DEFAULT_SECTORS = ['Semua', 'Perbankan', 'Konsumen', 'Tambang', 'Energi', 'Telekomunikasi', 'Infrastruktur', 'Industri', 'Teknologi']
+const DEFAULT_SECTORS = ['Semua', 'Technology', 'Communication Services', 'Consumer Cyclical', 'Consumer Defensive', 'Financials', 'Healthcare', 'Energy', 'Industrials', 'ETF', 'Kripto']
 
 const PRESETS_KEY = 'stockpulse-screener-presets'
 
@@ -24,7 +24,7 @@ export default function ScreenerFilters({ onApply }) {
   const [minScore, setMinScore] = useState(0)
   const [signal, setSignal] = useState('Semua')
   const [name, setName] = useState('')
-  const [presets, setPresets] = useState(loadPresets)
+  const [presets, setPresets] = useState(loadPresets())
   const [sectors, setSectors] = useState(DEFAULT_SECTORS)
 
   useEffect(() => {
@@ -79,35 +79,59 @@ export default function ScreenerFilters({ onApply }) {
     >
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
-          <SlidersHorizontal size={16} className="text-up" />
-          <h3 className="font-semibold text-sm">Filter Saham</h3>
+          <SlidersHorizontal size={16} className="text-accent" />
+          <h3 className="font-semibold text-sm">Filter Aset</h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
-          <div className="lg:col-span-4">
+        <div className="space-y-3">
+          {/* Search */}
+          <div>
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">Cari Ticker / Nama</label>
             <input
               value={query}
               onChange={(e) => { setQuery(e.target.value); apply() }}
-              placeholder="BBCA, Bank..."
-              className="w-full rounded-xl bg-elevated border border-line-strong px-3.5 py-2 text-sm placeholder:text-ink-faint focus:outline-none focus:border-up/40 focus:ring-2 focus:ring-up/10 transition-all"
+              placeholder="AAPL, BTC, SPY..."
+              className="input-field"
             />
           </div>
 
-          <div className="lg:col-span-3">
-            <label className="block text-xs text-ink-faint mb-1.5 font-medium">Sektor</label>
-            <select
-              value={sector}
-              onChange={(e) => { setSector(e.target.value); apply() }}
-              className="w-full rounded-xl bg-elevated border border-line-strong px-3.5 py-2 text-sm focus:outline-none focus:border-up/40 cursor-pointer"
-            >
-              {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+          {/* Sector & Signal row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-ink-faint mb-1.5 font-medium">Sektor</label>
+              <select
+                value={sector}
+                onChange={(e) => { setSector(e.target.value); apply() }}
+                className="select-field"
+              >
+                {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-ink-faint mb-1.5 font-medium">
+                Signal <span className="text-ink ml-1">·</span>
+              </label>
+              <div className="btn-group">
+                {['Semua', 'BUY', 'HOLD', 'SELL'].map((s) => (
+                  <span
+                    key={s}
+                    onClick={() => { setSignal(s); apply() }}
+                    className={`badge cursor-pointer ${
+                      signal === s ? 'active' : ''
+                    }`}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="lg:col-span-2">
+          {/* Score slider */}
+          <div>
             <label className="block text-xs text-ink-faint mb-1.5 font-medium">
-              Min. Skor Total: <span className="text-up font-mono">{minScore}</span>
+              Min. Skor Total: <span className="text-accent font-mono">{minScore}</span>
             </label>
             <input
               type="range"
@@ -116,64 +140,67 @@ export default function ScreenerFilters({ onApply }) {
               step="5"
               value={minScore}
               onChange={(e) => { setMinScore(Number(e.target.value)); apply() }}
-              className="w-full accent-up cursor-pointer"
+              className="range-slider"
             />
-          </div>
-
-          <div className="lg:col-span-3">
-            <label className="block text-xs text-ink-faint mb-1.5 font-medium">Signal</label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {['Semua', 'BUY', 'HOLD', 'SELL'].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { setSignal(s); apply() }}
-                  className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all cursor-pointer ${
-                    signal === s
-                      ? 'border-up/40 bg-up/10 text-up'
-                      : 'border-line-strong text-ink-soft hover:text-ink hover:bg-elevated'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="flex justify-between text-xs text-ink-faint mt-1">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        {/* Presets */}
+        <AnimatePresence>
+          {presets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 pt-4 border-t border-line"
+            >
+              <p className="text-xs text-ink-faint mb-2">Build Tersimpan:</p>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((p) => (
+                  <span key={p.id} className="badge badge--neutral cursor-pointer hover:shadow-md transition-shadow" onClick={() => loadPreset(p)}>
+                    <Bookmark size={12} className="text-accent flex-shrink-0" />
+                    <span>{p.label}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletePreset(p.id) }}
+                      className="text-ink-faint hover:text-down transition-colors"
+                      aria-label="Hapus build"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Footer actions */}
+        <div className="mt-4 flex items-center gap-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama build (cth: Bank murah)"
-            className="w-full max-w-xs rounded-xl bg-elevated border border-line-strong px-3.5 py-1.5 text-xs placeholder:text-ink-faint focus:outline-none focus:border-up/40"
+            className="input-field text-xs py-1.5"
+            style={{ fontSize: '12px', padding: '8px 10px' }}
           />
           <button
             onClick={savePreset}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-up/10 border border-up/25 px-3 py-1.5 text-xs font-semibold text-up hover:bg-up/20 transition-colors cursor-pointer"
+            className="badge badge--green hover:scale-105 transition-transform"
           >
-            <BookmarkPlus size={13} /> Simpan Build
+            <BookmarkPlus size={12} />
+            Simpan
           </button>
-
-          {presets.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap ml-2 border-l border-line pl-3">
-              {presets.map((p) => (
-                <span key={p.id} className="inline-flex items-center gap-1 rounded-lg border border-line-strong bg-card px-2.5 py-1.5 text-xs text-ink-soft">
-                  <button onClick={() => loadPreset(p)} className="inline-flex items-center gap-1 hover:text-ink transition-colors cursor-pointer">
-                    <Bookmark size={12} className="text-up" /> {p.label}
-                  </button>
-                  <button onClick={() => deletePreset(p.id)} className="text-ink-faint hover:text-down transition-colors cursor-pointer" aria-label="Hapus build">
-                    <Trash2 size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
 
           <button
             onClick={reset}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:text-ink transition-colors cursor-pointer"
+            className="badge badge--neutral hover:scale-105 transition-transform"
           >
-            <RotateCcw size={13} /> Reset Filter
+            <RotateCcw size={12} /> Reset
           </button>
         </div>
       </Card>

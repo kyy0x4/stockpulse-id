@@ -1,8 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import Sidebar from './components/layout/Sidebar'
-import Topbar from './components/layout/Topbar'
+import TopNav from './components/layout/TopNav'
 import TickerTape from './components/layout/TickerTape'
 import StockDetailPage from './pages/StockDetailPage'
 import AuthPage from './pages/AuthPage'
@@ -21,6 +20,7 @@ const NewsPage = lazy(() => import('./pages/NewsPage'))
 const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
 const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'))
+const MacroPage = lazy(() => import('./pages/MacroPage'))
 
 function PageWrapper({ children }) {
   return (
@@ -79,12 +79,13 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
   const location = useLocation()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const page = location.pathname.replace(/^\//, '') || 'dashboard'
 
-  const navigateTo = (id) => navigate(id === 'dashboard' ? '/' : `/${id}`)
+  const navigateTo = (id) => {
+    if (id === 'dashboard') navigate('/')
+    else navigate(`/${id}`)
+  }
 
   const baseData = stocks.length ? stocks : mockStocks
   const data = query.trim()
@@ -102,43 +103,27 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
   const openDetail = (stock) => navigate(`/stock/${stock.ticker}`)
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <div className="fixed inset-0 grid-bg pointer-events-none" aria-hidden="true" />
-
-      <Sidebar
-        active={page}
+    <div className="app-shell">
+      <TopNav
+        page={page}
         onNavigate={navigateTo}
-        open={sidebarOpen}
-        collapsed={sidebarCollapsed}
-        onClose={() => setSidebarOpen(false)}
+        query={query}
+        onSearch={setQuery}
         theme={theme}
         toggleTheme={toggleTheme}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         user={user}
         onLogout={onLogout}
       />
 
-      <div className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-300 ${sidebarCollapsed ? 'xl:ml-[88px]' : 'xl:ml-[264px]'}`}>
-        <Topbar
-          query={query}
-          onSearch={setQuery}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
-          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-          sidebarCollapsed={sidebarCollapsed}
-          theme={theme}
-          toggleTheme={toggleTheme}
-          user={user}
-          onLogout={onLogout}
-        />
+      <TickerTape stocks={data} />
 
-        <TickerTape stocks={data} />
-
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-5 py-1">
-            {usingMock && (
-              <span className="font-mono text-[10px] text-warning/80">mode demo · backend tidak terhubung, pakai data mock</span>
-            )}
+      <main className="app-main">
+        {usingMock && (
+          <div className="page-wrap" style={{ paddingBottom: 0, paddingTop: 10 }}>
+            <span className="tag tag-amber" style={{ height: 24 }}>mode demo · backend tidak terhubung</span>
           </div>
+        )}
+        <div className="page-wrap">
           <AnimatePresence mode="wait">
             <PageWrapper key={location.pathname}>
               <Suspense fallback={<PageFallback />}>
@@ -166,6 +151,7 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
                     theme={theme}
                   />} />
                   <Route path="/market" element={<MarketPage stocks={data} theme={theme} />} />
+                  <Route path="/macro" element={<MacroPage />} />
                   <Route path="/news" element={<NewsPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
                   <Route path="/market-pulse" element={<MarketPulsePage stocks={data} theme={theme} />} />
                   <Route path="/news-impact" element={<NewsImpactPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
@@ -183,8 +169,8 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
               </Suspense>
             </PageWrapper>
           </AnimatePresence>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
@@ -194,7 +180,7 @@ function Splash() {
     <div className="fixed inset-0 grid-bg flex flex-col items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-up/20 border-t-up" />
       <div style={{ marginTop: 14, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.3em', color: 'var(--text3)' }}>
-        PLOTFINANSIAL
+        PULSETERMINAL
       </div>
     </div>
   )

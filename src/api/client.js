@@ -7,24 +7,39 @@ async function get(path) {
 }
 
 export const api = {
-  list(sector, signal, minScore, q) {
+  list(sector, signal, minScore, q, kind) {
     const params = new URLSearchParams({ limit: '300' })
-    if (sector && sector !== 'Semua') params.set('sector', sector)
-    if (signal && signal !== 'Semua') params.set('signal', signal)
+    if (sector && sector !== 'Semua' && sector !== 'All') params.set('sector', sector)
+    if (signal && signal !== 'Semua' && signal !== 'All') params.set('signal', signal)
     if (minScore) params.set('min_score', String(minScore))
     if (q) params.set('q', q)
+    if (kind && kind !== 'all') params.set('kind', kind)
     return get(`/stocks?${params}`)
   },
   detail(ticker) {
     return get(`/stocks/${ticker}`)
   },
+  // Indeks pasar: SPX / IXIC / DJI / BTC / ETH
+  marketIndex(code = 'SPX', period = '1y') {
+    return get(`/market/index?code=${encodeURIComponent(code)}&period=${encodeURIComponent(period)}`)
+  },
+  marketAssets() {
+    return get('/market/assets')
+  },
+  // Kompatibilitas nama lama
   ihsg() {
-    return get('/market/ihsg')
+    return get('/market/index?code=SPX&period=1y')
   },
-  news(category = 'market', limit = 20) {
-    return get(`/news?category=${category}&limit=${limit}`)
+  news(category = 'all', limit = 20) {
+    return get(`/news?category=${encodeURIComponent(category)}&limit=${limit}`)
   },
-  tickers() {
-    return get('/tickers')
+  tickers(kind) {
+    return get(`/tickers${kind ? `?kind=${encodeURIComponent(kind)}` : ''}`)
+  },
+  macro() {
+    return get('/macro')
+  },
+  macroSeries(ids = 'CPIAUCSL,UNRATE,FEDFUNDS') {
+    return get(`/macro/series?ids=${encodeURIComponent(ids)}`)
   },
 }

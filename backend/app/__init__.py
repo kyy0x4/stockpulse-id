@@ -1,1 +1,1 @@
-"""PlotFinansial backend package."""
+"""PulseTerminal backend package."""

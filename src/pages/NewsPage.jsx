@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { PH, viewStock } from '../components/ui/DashboardComponents'
+import { Clock, ExternalLink, Newspaper } from 'lucide-react'
 
 const CATS = [
-  { id: 'market', label: 'Market & Saham' },
-  { id: 'ekbis', label: 'Ekonomi & Bisnis' },
+  { id: 'all', label: 'Semua' },
+  { id: 'us', label: 'Saham AS' },
+  { id: 'crypto', label: 'Kripto' },
+  { id: 'macro', label: 'Makro AS' },
+  { id: 'geopolitik', label: 'Geopolitik' },
 ]
 
 function timeAgo(iso) {
@@ -25,17 +29,17 @@ const sent = (s) => {
   return 'neutral'
 }
 
-const sentCol = (s) => s === 'positive' ? 'var(--up)' : s === 'negative' ? 'var(--down)' : 'var(--text3)'
+const sentTone = (s) => (s === 'positive' ? 'tag-green' : s === 'negative' ? 'tag-red' : 'tag-neutral')
 
 export default function NewsPage({ onSelectStock, stocks = [] }) {
-  const [cat, setCat] = useState('market')
+  const [cat, setCat] = useState('all')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const openStock = (ticker) => {
     if (!ticker) return
-    const found = stocks.find(s => s.ticker === ticker)
+    const found = stocks.find((s) => s.ticker === ticker)
     if (found) onSelectStock?.(viewStock(found))
   }
 
@@ -44,7 +48,7 @@ export default function NewsPage({ onSelectStock, stocks = [] }) {
     const related = item?.related || []
     const names = related.map((r) => r.ticker).filter(Boolean).slice(0, 4)
     return {
-      headline: impact.ihsg || 'netral untuk IHSG',
+      headline: impact.asset || impact.ihsg || 'netral untuk pasar global',
       move: impact.market_move || 'dampaknya terbatas',
       strength: impact.strength ?? 0,
       direction: impact.direction || sent(item.sentiment),
@@ -66,103 +70,99 @@ export default function NewsPage({ onSelectStock, stocks = [] }) {
   }, [cat])
 
   return (
-    <div className="fade-up" style={{ padding:'20px 16px 28px' }}>
-      <PH eyebrow="BERITA & ANALISIS PASAR" title="MARKET NEWS" />
+    <div className="fade-up">
+      <PH eyebrow="Berita internasional · kripto · saham AS · makro" title="Global News" />
 
-      <div style={{ display:'flex', gap:1, flexWrap:'wrap', marginBottom:24, background:'var(--border)' }}>
-        {CATS.map(c => (
-          <button key={c.id} onClick={() => setCat(c.id)} className={`fbtn ${cat === c.id ? 'active' : ''}`}>{c.label}</button>
+      <div className="tabstrip">
+        {CATS.map((c) => (
+          <button key={c.id} className={`tabstrip-tab ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
+            {c.label}
+          </button>
         ))}
       </div>
 
       {loading && (
-        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text2)', letterSpacing:'0.08em' }}>MENGAMBIL BERITA TERBARU…</span>
-        </div>
+        <div className="cg-card empty-state">Mengambil berita terbaru…</div>
       )}
 
       {error && !loading && (
-        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--down)', letterSpacing:'0.08em' }}>BERITA GAGAL DIMUAT: {error}</span>
-        </div>
+        <div className="cg-card empty-state" style={{ color: 'var(--down)' }}>Berita gagal dimuat: {error}</div>
       )}
 
       {!loading && !error && items.length === 0 && (
-        <div style={{ padding:'60px', textAlign:'center', border:'1px solid var(--border)' }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text3)', letterSpacing:'0.08em' }}>BELUM ADA BERITA SAAT INI.</span>
-        </div>
+        <div className="cg-card empty-state">Belum ada berita saat ini.</div>
       )}
 
       {!loading && !error && items.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:1, background:'var(--border)' }}>
-          {items.map((item, i) => (
-            <div key={item.link || i} onClick={() => openStock(item.ticker)} style={{
-              background: i === 0 ? 'var(--bg3)' : 'var(--bg2)', padding:'18px 18px 16px',
-              cursor: item.ticker ? 'pointer' : 'default',
-              borderLeft: i === 0 ? '3px solid var(--accent)' : '3px solid transparent',
-              transition:'background 0.12s',
-              minHeight: 180,
-              display:'flex',
-              flexDirection:'column',
-              minWidth: 0,
-            }}
-              onMouseEnter={e => (e.currentTarget).style.background = 'var(--bg3)'}
-              onMouseLeave={e => (e.currentTarget).style.background = i === 0 ? 'var(--bg3)' : 'var(--bg2)'}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' }}>
-                <span className="chip">{item.category || cat}</span>
-                {item.ticker && <span style={{ fontFamily:'var(--font-mono)', fontSize:9, padding:'2px 6px', background:'var(--accent-dim)', color:'var(--accent)', border:'1px solid var(--accent)', letterSpacing:'0.06em' }}>{item.ticker}</span>}
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:8, padding:'2px 6px', color: sentCol(sent(item.sentiment)), border:`1px solid ${sentCol(sent(item.sentiment))}`, letterSpacing:'0.06em', opacity:0.8 }}>
-                  {sent(item.sentiment).toUpperCase()}
-                </span>
-              </div>
-              <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration:'none', color:'inherit', flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:500, color:'var(--text)', lineHeight:1.6, marginBottom:10, fontFamily:'var(--font-body)', maxWidth:'100%' }}>
-                  {item.title}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+          {items.map((item, i) => {
+            const sentiment = sent(item.sentiment)
+            const imp = impactText(item)
+            const dirColor = imp.direction === 'positif' ? 'var(--up)' : imp.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
+            return (
+              <article
+                key={item.link || i}
+                className="cg-card"
+                onClick={() => openStock(item.ticker)}
+                style={{
+                  padding: 16,
+                  cursor: item.ticker ? 'pointer' : 'default',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  transition: 'border-color 0.15s, transform 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span className="chip" style={{ textTransform: 'uppercase' }}>{item.category || cat}</span>
+                  {item.ticker && <span className="tag tag-accent">{item.ticker}</span>}
+                  <span className={`tag ${sentTone(sentiment)}`} style={{ marginLeft: 'auto' }}>{sentiment.toUpperCase()}</span>
                 </div>
-              </a>
-              <div style={{ marginBottom: 10, padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gap: 8 }}>
-                {(() => {
-                  const imp = impactText(item)
-                  const dirColor = imp.direction === 'positif' ? 'var(--up)' : imp.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em' }}>DAMPAK</span>
-                        <span className="sig" style={{ color: dirColor, borderColor: `${dirColor}40`, background: 'var(--bg3)' }}>{String(imp.direction).toUpperCase()}</span>
-                        <span className="chip">{imp.scopeLabel}</span>
-                        {imp.event && <span className="chip">{imp.event}</span>}
-                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>
-                          KEKUATAN {imp.strength}%
+
+                <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <h3 style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.45, letterSpacing: '-0.01em', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {item.title}
+                  </h3>
+                </a>
+
+                <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gap: 7 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em' }}>DAMPAK</span>
+                    <span className="tag" style={{ color: dirColor, background: 'var(--bg3)', borderColor: 'var(--border2)' }}>{String(imp.direction).toUpperCase()}</span>
+                    <span className="chip">{imp.scopeLabel}</span>
+                    <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>KEKUATAN {imp.strength}%</span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.03em', color: dirColor }}>
+                    {imp.headline.toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{imp.move}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {imp.related.length > 0 ? imp.related.map((t, idx) => {
+                      const rel = item?.related?.[idx]
+                      const dcol = rel?.direction === 'positif' ? 'var(--up)' : rel?.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
+                      return (
+                        <span key={t} className="chip" style={{ color: dcol, borderColor: 'var(--border2)' }}>
+                          {t}{rel?.direction === 'positif' ? ' ↑' : rel?.direction === 'negatif' ? ' ↓' : ''}
                         </span>
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.04em', color: dirColor }}>
-                        {imp.headline.toUpperCase()}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{imp.move}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        {imp.related.length > 0 ? imp.related.map((t, i) => {
-                          const rel = item?.related?.[i]
-                          const dcol = rel?.direction === 'positif' ? 'var(--up)' : rel?.direction === 'negatif' ? 'var(--down)' : 'var(--text3)'
-                          return (
-                            <span key={t} className="chip" style={{ color: dcol, borderColor: `${dcol}40` }}>
-                              {t}{rel?.direction === 'positif' ? ' ↑' : rel?.direction === 'negatif' ? ' ↓' : ''}
-                            </span>
-                          )
-                        }) : (
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>TIDAK ADA EMITEN SPESIFIK</span>
-                        )}
-                      </div>
-                    </>
-                  )
-                })()}
-              </div>
-              <div style={{ display:'flex', gap:16, marginTop:'auto', flexWrap:'wrap' }}>
-                {item.source && <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text2)', letterSpacing:'0.04em' }}>{item.source}</span>}
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text3)' }}>{timeAgo(item.published)}</span>
-              </div>
-            </div>
-          ))}
+                      )
+                    }) : (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>TIDAK ADA ASET SPESIFIK</span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text3)' }}>
+                  {item.source && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Newspaper size={10} /> {item.source}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={10} /> {timeAgo(item.published)}</span>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', color: 'var(--text3)', display: 'inline-flex' }} aria-label="Buka berita">
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     </div>

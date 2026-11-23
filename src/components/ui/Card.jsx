@@ -3,9 +3,9 @@ import { motion } from 'framer-motion'
 export default function Card({ children, className = '', hover = false, ...props }) {
   return (
     <motion.div
-      whileHover={hover ? { y: -4 } : undefined}
+      whileHover={hover ? { scale: 1.01 } : undefined}
       transition={{ duration: 0.25 }}
-      className={`glass rounded-2xl ${className}`}
+      className={`card ${className}`}
       {...props}
     >
       {children}

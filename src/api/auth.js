@@ -25,11 +25,16 @@ async function req(path, { method = 'GET', body, token } = {}) {
   const t = token || getToken()
   if (t) headers.Authorization = `Bearer ${t}`
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    ...(method !== 'GET' && body ? { body: JSON.stringify(body) } : {}),
-  })
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      ...(method !== 'GET' && body ? { body: JSON.stringify(body) } : {}),
+    })
+  } catch {
+    throw new Error(`Tidak bisa terhubung ke backend (${API_BASE}). Pastikan API lokal sudah jalan.`)
+  }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const err = new Error(data?.detail || `API ${res.status}`)

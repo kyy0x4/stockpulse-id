@@ -1,3 +1,5 @@
+import hashlib
+import threading
 import time
 import warnings
 from urllib.parse import urlparse
@@ -6,10 +8,51 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from app.data.tickers import SECTOR_GROUP, ALL_TICKERS, LOGO_OVERRIDES
+from app.data.tickers import (
+    ALL_TICKERS,
+    CRYPTO_TICKERS,
+    US_STOCKS,
+    MARKET_ASSETS,
+    NEW_ASSETS,
+    LOGO_OVERRIDES,
+)
 from app.services.cache import get as cache_get, set as cache_set
 
 warnings.filterwarnings("ignore")
+
+# yfinance memakai state global yang tidak aman dipakai paralel untuk simbol
+# berbeda. Serialisasi download indeks supaya request SPX/BTC/ETH yang datang
+# bersamaan tidak saling menimpa (pernah bikin BTC/ETH berisi data S&P 500).
+_index_lock = threading.Lock()
+
+def yf_symbol(ticker):
+    """Ticker internal → simbol Yahoo Finance.
+
+    - Kripto spot : BTC   → BTC-USD
+    - ETF         : SPY   → SPY
+    - Indeks      : SPX   → ^GSPC (via MARKET_ASSETS)
+    - Saham AS    : AAPL  → AAPL
+    """
+    t = (ticker or "").upper()
+    for asset in MARKET_ASSETS:
+        if asset["ticker"] == t:
+            return asset["yf"]
+    if t in NEW_ASSETS and NEW_ASSETS[t].get("kind") == "crypto":
+        return NEW_ASSETS[t].get("yf") or f"{t}-USD"
+    return t
+
+
+def asset_kind(ticker):
+    """Klasifikasi aset: 'crypto', 'us_stock', 'etf', atau 'index'."""
+    t = (ticker or "").upper()
+    for asset in MARKET_ASSETS:
+        if asset["ticker"] == t:
+            return asset["kind"]
+    if t in NEW_ASSETS:
+        return NEW_ASSETS[t].get("kind", "us_stock")
+    if t in CRYPTO_TICKERS:
+        return "crypto"
+    return "us_stock"
 
 
 def domain_from_website(url):
@@ -31,20 +74,28 @@ def fetch_batch_histories(tickers=None, period="6mo", interval="1d", ttl=600):
     240 ticker saat /warm & /stocks dipanggil beruntun.
     """
     codes = list(tickers or ALL_TICKERS)
-    key = f"bh:{period}:{interval}"
+    sig = hashlib.md5(",".join(sorted(codes)).encode()).hexdigest()[:10]
+    key = f"bh:{period}:{interval}:{sig}"
     cached = cache_get(key)
     if cached is not None:
         # kembalikan subset; semua kode dimuat sekali, kode baru = cache miss
         return {c: cached[c] for c in codes if c in cached}
 
     t0 = time.time()
-    yahoo = [f"{t}.JK" for t in codes]
+    yahoo = [yf_symbol(t) for t in codes]
     frames = yf.download(tickers=yahoo, period=period, interval=interval, auto_adjust=True, actions=False, group_by="ticker", threads=True)
+    multi = isinstance(frames.columns, pd.MultiIndex)
     out = {}
     for code in codes:
-        key_t = f"{code}.JK"
+        key_t = yf_symbol(code)
         try:
-            df = frames[key_t].dropna(how="all")
+            if multi:
+                if key_t not in frames.columns.get_level_values(0):
+                    continue
+                df = frames[key_t]
+            else:
+                df = frames
+            df = df.dropna(how="all")
             if df.empty:
                 continue
             df = df.reset_index()
@@ -79,7 +130,7 @@ def _clean(value):
 
 
 def fetch_history(ticker, period="6mo", interval="1d"):
-    t = yf.Ticker(f"{ticker}.JK")
+    t = yf.Ticker(yf_symbol(ticker))
     hist = t.history(period=period, interval=interval, auto_adjust=True, actions=False)
     hist = hist.reset_index()
     data = []
@@ -98,13 +149,17 @@ def fetch_history(ticker, period="6mo", interval="1d"):
     return data
 
 
-def fetch_ihsg(period="1y", interval="1d"):
-    """Fetch real IHSG (^JKSE) index history + current snapshot."""
+def fetch_market_index(code="SPX", period="1y", interval="1d"):
+    """Fetch indeks / aset pasar (S&P 500, Nasdaq, Dow, BTC, ETH)."""
+    asset = next((a for a in MARKET_ASSETS if a["ticker"] == (code or "").upper()), None)
+    if asset is None:
+        asset = {"ticker": (code or "").upper(), "yf": yf_symbol(code), "name": (code or "").upper()}
     try:
-        hist = yf.download(
-            tickers="^JKSE", period=period, interval=interval,
-            auto_adjust=True, actions=False, progress=False,
-        )
+        with _index_lock:
+            hist = yf.download(
+                tickers=asset["yf"], period=period, interval=interval,
+                auto_adjust=True, actions=False, progress=False,
+            )
     except Exception:
         return None
     if hist is None or hist.empty:
@@ -131,14 +186,21 @@ def fetch_ihsg(period="1y", interval="1d"):
     change = ((last["close"] - prev["close"]) / prev["close"] * 100) if prev["close"] else 0
     ytd = ((last["close"] - first["close"]) / first["close"] * 100) if first["close"] else 0
     return {
-        "name": "IHSG",
-        "code": "^JKSE",
+        "name": asset["name"],
+        "code": asset["ticker"],
+        "yf": asset["yf"],
+        "kind": asset.get("kind", "index"),
         "price": last["close"],
         "change": round(change, 2),
         "ytd": round(ytd, 2),
         "last_updated": last["date"],
         "history": rows,
     }
+
+
+def fetch_ihsg(period="1y", interval="1d"):
+    """Kompatibilitas: IHSG kini diperlakukan sebagai aset pasar biasa."""
+    return fetch_market_index("SPX", period=period, interval=interval)
 
 
 def fetch_info(ticker, ttl=6 * 3600):
@@ -152,30 +214,43 @@ def fetch_info(ticker, ttl=6 * 3600):
     if cached is not None:
         return cached
 
-    t = yf.Ticker(f"{ticker}.JK")
+    t = yf.Ticker(yf_symbol(ticker))
     info = t.info
-    sector = _clean(info.get("sector"))
+    sector_raw = _clean(info.get("sector"))
     website = _clean(info.get("website"))
     domain = domain_from_website(website)
     override = LOGO_OVERRIDES.get(ticker)
     icon_horse = f"https://icon.horse/icon/{domain}" if domain else None
     google_fav = f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None
+    kind = asset_kind(ticker)
+    meta = NEW_ASSETS.get((ticker or "").upper(), {})
+    sector = sector_raw or meta.get("sector") or "Lainnya"
+    default_currency = "USD"
+    market_cap = _clean(info.get("marketCap"))
+    if market_cap is None:
+        # ETF tidak punya marketCap; pakai total aset bersih sebagai ukuran.
+        market_cap = _clean(info.get("totalAssets"))
+    # Yahoo melaporkan debtToEquity dalam persen (mis. 145 = 1,45x), bukan rasio.
+    der = _clean(info.get("debtToEquity"))
+    if der is not None and der > 10:
+        der = round(der / 100, 2)
     result = {
-        "name": info.get("longName") or info.get("shortName") or ticker,
+        "name": info.get("longName") or info.get("shortName") or meta.get("name") or ticker,
+        "kind": kind,
         "domain": domain,
         "website": website,
         "logo_url": override or icon_horse,
         "logo_fallback": google_fav,
-        "sector_raw": sector,
-        "sector": SECTOR_GROUP.get(sector, sector or "Lainnya"),
-        "currency": info.get("currency") or "IDR",
-        "market_cap": _clean(info.get("marketCap")),
+        "sector_raw": sector_raw,
+        "sector": sector,
+        "currency": info.get("currency") or default_currency,
+        "market_cap": market_cap,
         "trailing_pe": _clean(info.get("trailingPE")),
         "forward_pe": _clean(info.get("forwardPE")),
         "price_to_book": _clean(info.get("priceToBook")),
         "return_on_equity": _clean(info.get("returnOnEquity")),
         "return_on_assets": _clean(info.get("returnOnAssets")),
-        "debt_to_equity": _clean(info.get("debtToEquity")),
+        "debt_to_equity": der,
         "current_ratio": _clean(info.get("currentRatio")),
         "revenue_growth": _clean(info.get("revenueGrowth")),
         "earnings_growth": _clean(info.get("earningsGrowth")),

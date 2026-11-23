@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
-import { Spark, SBar, sigColor, sigBg, viewStock, LineChart } from '../components/ui/DashboardComponents'
+import { Spark, SBar, viewStock, fmtPrice, kindLabel, PriceChart } from '../components/ui/DashboardComponents'
 import { ChevronLeft, Star, TrendingUp, TrendingDown, Clock, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
 
 function Metric({ label, value, good }) {
+  const color = value == null ? 'var(--text3)' : good === true ? 'var(--up)' : good === false ? 'var(--down)' : 'var(--text)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 12px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8 }}>
       <span style={{ fontSize: 12, color: 'var(--text2)' }}>{label}</span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: value == null ? 'var(--text3)' : good ? 'var(--up)' : 'var(--down)', textAlign: 'right' }}>{value ?? '—'}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color, textAlign: 'right' }}>{value ?? '—'}</span>
     </div>
   )
 }
+
+const fmtNum = (v, d = 1) => (v == null || Number.isNaN(Number(v)) ? null : Number(v).toFixed(d))
 
 export default function StockDetailPage({ stock, onClose, onToggleFav, favorites }) {
   const s = viewStock(stock || {})
@@ -46,9 +49,12 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   const sector = detail?.sector ?? s.sector
   const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : (change ?? 0) >= 0
   const positive = (change ?? 0) >= 0
+  const periodReturn = series.length >= 2 && series[0] ? ((series[series.length - 1] - series[0]) / series[0]) * 100 : null
 
   const f = merged.fundamental || {}
   const t = merged.technical || {}
+  const isProfile = merged.kind === 'crypto' || merged.kind === 'etf'
+  const pillarEntries = Object.entries(f.pillars || {})
 
   const emaDaily = t.ema21 != null ? `${t.ema21} / ${t.ema34} / ${t.ema55}` : null
   const emaWeekly = t.ema21w != null ? `${t.ema21w} / ${t.ema34w} / ${t.ema55w}` : null
@@ -58,7 +64,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   }
 
   return (
-    <div className="fade-up" style={{ padding: '20px 16px 28px' }}>
+    <div className="fade-up">
       <div className="sm:px-5 lg:px-7" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         <button
           onClick={onClose}
@@ -68,7 +74,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           <ChevronLeft size={15} />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em' }}>KEMBALI</span>
         </button>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', letterSpacing: '0.08em' }}>ANALISA SAHAM · HALAMAN DETAIL</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', letterSpacing: '0.08em' }}>ANALISA ASET · HALAMAN DETAIL</div>
       </div>
 
       <div className="card sm:px-6" style={{ padding: 20 }}>
@@ -76,12 +82,10 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)', margin: 0 }}>{s.ticker}</h2>
-                <span className="sig" style={{ color: sigColor(s.signal, 'dark'), background: sigBg(s.signal), borderColor: `${sigColor(s.signal, 'dark')}40` }}>
-                  {s.signal}
+                <span className={`tag ${merged.signal === 'Buy' ? 'tag-green' : merged.signal === 'Sell' ? 'tag-red' : 'tag-amber'} tag-dot`}>
+                  {merged.signal}
                 </span>
-                {detail?.signal && (
-                  <span className="chip" style={{ color: 'var(--text2)' }}>{String(detail.signal).toUpperCase()}</span>
-                )}
+                <span className="chip">{kindLabel(merged.kind)}</span>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>{name} · {sector}</p>
               <p style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -102,23 +106,33 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                 {isFav ? 'Di Watchlist' : 'Watchlist'}
               </button>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>{price != null ? price.toLocaleString('id-ID') : '—'}</p>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: trendPositive ? 'var(--up)' : 'var(--down)', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                  {trendPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>{price != null ? fmtPrice(price, merged.kind) : '—'}</p>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: positive ? 'var(--up)' : 'var(--down)', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                  {positive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
                   {change != null ? `${positive ? '+' : ''}${change}%` : '—'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: 20, border: '1px solid var(--border)', background: 'var(--bg3)', padding: 16, borderRadius: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 600 }}>Performa Harga {history.length > 0 ? '(3 bulan)' : '(7 sessie)'}</p>
+          <div style={{ marginTop: 20, border: '1px solid var(--border)', background: 'var(--bg3)', padding: 16, borderRadius: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+              <p style={{ fontSize: 13, fontWeight: 600 }}>Performa Harga {history.length > 0 ? '· 3 bulan' : '· 7 sesi terakhir'}</p>
               {loadingDetail && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text3)', marginLeft: 4 }} />}
-              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: trendPositive ? 'var(--up)' : 'var(--down)' }}>TREN</span>
+              {periodReturn != null && (
+                <span className={`tag ${periodReturn >= 0 ? 'tag-green' : 'tag-red'}`} style={{ marginLeft: 'auto' }}>
+                  {periodReturn >= 0 ? '+' : ''}{periodReturn.toFixed(2)}% dalam 3 bulan
+                </span>
+              )}
             </div>
             {series.length >= 2 ? (
-              <LineChart values={series} up={trendPositive} h={200} />
+              <>
+                <PriceChart rows={history.slice(-90)} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', flexWrap: 'wrap' }}>
+                  <span>{series.length} sesi perdagangan</span>
+                  <span>Low {fmtPrice(Math.min(...series), merged.kind)} · High {fmtPrice(Math.max(...series), merged.kind)}</span>
+                </div>
+              </>
             ) : (
               <Spark data={s.sparkline} up={trendPositive} w={800} h={120} fluid />
             )}
@@ -127,25 +141,52 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-                <p style={{ fontSize: 13, fontWeight: 600 }}>Fundamental</p>
-                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>Skor: {s.fundScore}/100</span>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>{isProfile ? 'Profil Pasar' : 'Fundamental'}</p>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)' }}>Skor: {merged.fundScore}/100</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <Metric label="PER (Price to Earnings)" value={f.per != null ? `${f.per}x` : null} good={f.per > 0 && f.per < 15} />
-                <Metric label="PBV (Price to Book)" value={f.pbv != null ? `${f.pbv}x` : null} good={f.pbv < 3} />
-                <Metric label="ROE (Return on Equity)" value={f.roe != null ? `${f.roe}%` : null} good={f.roe > 15} />
-                <Metric label="DER (Debt to Equity)" value={f.der != null ? `${f.der}x` : null} good={f.der < 1} />
-                <Metric label="Pertumbuhan Laba" value={f.growth != null ? `${f.growth}%` : null} good={f.growth > 10} />
+                {isProfile ? (
+                  <>
+                    <Metric label="Return 30 hari" value={f.return_30d != null ? `${f.return_30d > 0 ? '+' : ''}${f.return_30d}%` : (f.metrics?.return_30d ?? null)} good={(f.return_30d ?? 0) > 0} />
+                    <Metric label="Return 90 hari" value={f.return_90d != null ? `${f.return_90d > 0 ? '+' : ''}${f.return_90d}%` : (f.metrics?.return_90d ?? null)} good={(f.return_90d ?? 0) > 0} />
+                    <Metric label="Return 1 tahun" value={f.return_1y != null ? `${f.return_1y > 0 ? '+' : ''}${f.return_1y}%` : (f.metrics?.return_1y ?? null)} good={(f.return_1y ?? 0) > 0} />
+                    <Metric label="Drawdown dari puncak 52m" value={f.drawdown_52w != null ? `${f.drawdown_52w}%` : (f.metrics?.drawdown_52w ?? null)} good={(f.drawdown_52w ?? -100) > -20} />
+                    <Metric label="Kapitalisasi / AUM" value={s.mktCap} good={null} />
+                  </>
+                ) : (
+                  <>
+                    <Metric label="PER (Price to Earnings)" value={f.per != null ? `${fmtNum(f.per, 1)}x` : null} good={f.per > 0 && f.per < 25} />
+                    <Metric label="PBV (Price to Book)" value={f.pbv != null ? `${fmtNum(f.pbv, 2)}x` : null} good={f.pbv < 5} />
+                    <Metric label="ROE (Return on Equity)" value={f.roe != null ? `${fmtNum(f.roe, 1)}%` : null} good={f.roe > 15} />
+                    <Metric label="DER (Debt to Equity)" value={f.der != null ? `${fmtNum(f.der, 2)}x` : null} good={f.der < 1} />
+                    <Metric label="Pertumbuhan Laba" value={f.growth != null ? `${fmtNum(f.growth, 1)}%` : null} good={f.growth > 10} />
+                  </>
+                )}
               </div>
+              {pillarEntries.length > 0 && (
+                <div style={{ marginTop: 14, display: 'grid', gap: 8 }}>
+                  {pillarEntries.map(([label, value]) => (
+                    <div key={label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.06em' }}>{String(label).toUpperCase()}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text2)' }}>{value}</span>
+                      </div>
+                      <div className="sbar-track" style={{ width: '100%' }}>
+                        <div className="sbar-fill" style={{ width: `${Math.min(100, Math.max(0, Number(value) || 0))}%`, background: 'var(--accent)', opacity: 0.7 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div style={{ marginTop: 12 }}>
-                <SBar v={s.fundScore} color="var(--accent)" />
+                <SBar v={merged.fundScore} color="var(--accent)" />
               </div>
             </div>
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
                 <p style={{ fontSize: 13, fontWeight: 600 }}>Teknikal</p>
-                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--up)' }}>Skor: {s.techScore}/100</span>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--up)' }}>Skor: {merged.techScore}/100</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <Metric label="Tren (EMA D+W)" value={t.trend || null} good={t.trend === 'Uptrend'} />
@@ -157,7 +198,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                 <Metric label="Rasio Volume" value={t.vol != null ? `${t.vol}x` : null} good={t.vol >= 1} />
               </div>
               <div style={{ marginTop: 12 }}>
-                <SBar v={s.techScore} color="var(--up)" />
+                <SBar v={merged.techScore} color="var(--up)" />
               </div>
             </div>
           </div>
@@ -204,14 +245,14 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
             <div>
               <p style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--accent)', textTransform: 'uppercase' }}>Skor Total Composite</p>
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--text2)' }}>
-                {s.composite >= 75
-                  ? 'Saham ini lolos seleksi fundamental & teknikal jangka panjang. Cocok untuk kandidat beli.'
-                  : s.composite >= 60
+                {merged.composite >= 75
+                  ? 'Aset ini lolos seleksi profil & teknikal jangka panjang. Cocok untuk kandidat beli.'
+                  : merged.composite >= 60
                     ? 'Cukup solid, tapi belum ideal. Tunggu koreksi sebelum masuk.'
                     : 'Di bawah standar. Hindari untuk portofolio jangka panjang saat ini.'}
               </p>
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, color: 'var(--accent)', lineHeight: 1 }}>{s.composite}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, color: 'var(--accent)', lineHeight: 1 }}>{merged.composite}</div>
           </div>
         </div>
       </div>

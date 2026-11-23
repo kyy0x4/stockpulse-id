@@ -150,10 +150,10 @@ export default function AuthPage() {
       <div className="fade-up" style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.3em', color: 'var(--text3)', marginBottom: 6 }}>
-            BURSA EFEK INDONESIA · REAL-TIME
+            SAHAM AS · ETF · KRIPTO · MAKRO
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 900, letterSpacing: '0.06em', color: 'var(--text)' }}>
-            PLOTFINANSIAL
+            PULSETERMINAL
           </div>
         </div>
 
@@ -243,7 +243,7 @@ export default function AuthPage() {
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.14em' }}>
-            WATCHLIST · PORTFOLIO · ANALISA BERITA
+            WATCHLIST · PORTFOLIO · BERITA GLOBAL · MAKRO
           </span>
         </div>
       </div>

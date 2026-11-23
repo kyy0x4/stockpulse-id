@@ -1,60 +1,39 @@
 import { useMemo } from 'react'
-import { useIHSG } from '../hooks/useIHSG'
-import { Spark, PH, pct, viewStock } from '../components/ui/DashboardComponents'
+import { useMarketIndex } from '../hooks/useMarketIndex'
+import { Spark, PH, pct, viewStock, fmtPrice } from '../components/ui/DashboardComponents'
+import SectorBars from '../components/ui/SectorBars'
+import StockLogo from '../components/ui/StockLogo'
+import { Activity, Layers, TrendingDown, TrendingUp } from 'lucide-react'
 
-function Stat({ label, val, sub, color }) {
-  return (
-    <div className="bg-card" style={{ padding: '16px 20px', borderLeft: `3px solid ${color}` }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, color, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>{sub}</div>
-    </div>
-  )
-}
-
-function SectorRow({ s }) {
-  const col = s.avg >= 0 ? 'var(--up)' : 'var(--down)'
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: col }}>{pct(s.avg)}</span>
-        </div>
-        <div className="sbar-track" style={{ width: '100%' }}>
-          <div className="sbar-fill" style={{ width: `${Math.min(100, Math.max(3, 50 + s.avg * 15))}%`, background: col, opacity: 0.6 }} />
-        </div>
-      </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', whiteSpace: 'nowrap' }}>{s.up}▲ {s.down}▼ · {s.n}</span>
-    </div>
-  )
-}
-
-function FlowRow({ s, up }) {
+function FlowRow({ s, up, onSelect }) {
   const col = up ? 'var(--up)' : 'var(--down)'
   return (
-    <div className="trow" style={{ padding: '9px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <Spark data={s.sparkline} up={up} w={44} h={20} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>{s.ticker}</div>
-        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{s.name}</div>
+    <div
+      className="hoverable"
+      onClick={() => onSelect?.(s)}
+      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 8px', margin: '0 -8px', borderRadius: 8, cursor: 'pointer' }}
+    >
+      <Spark data={s.sparkline} up={up} w={40} h={20} />
+      <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="cell-sym">{s.ticker}</div>
+        <div className="cell-name">{s.sector || s.name}</div>
       </div>
-      <span style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sector}</span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 500, color: col }}>{pct(s.changePct)}</span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text2)', minWidth: 50, textAlign: 'right' }}>{s.price.toLocaleString('id-ID')}</span>
+      <span className="num" style={{ fontSize: 12.5, fontWeight: 600, color: col }}>{pct(s.changePct)}</span>
+      <span className="num" style={{ fontSize: 11, color: 'var(--text2)', minWidth: 68, textAlign: 'right' }}>{fmtPrice(s.price, s.kind)}</span>
     </div>
   )
 }
 
-export default function MarketPulsePage({ stocks = [] }) {
-  const { ihsg, loading } = useIHSG()
+export default function MarketPulsePage({ stocks = [], onSelectStock }) {
+  const { index: spx, loading } = useMarketIndex('SPX')
   const data = useMemo(() => stocks.map(viewStock), [stocks])
 
   const withChange = data.filter((s) => s.changePct != null)
   const adv = withChange.filter((s) => s.changePct > 0).length
   const dec = withChange.filter((s) => s.changePct < 0).length
   const breadth = withChange.length ? Math.round(((adv - dec) / withChange.length) * 100) : 0
-  const positive = (ihsg?.change ?? 0) >= 0
+  const positive = (spx?.change ?? 0) >= 0
 
   const sectorMap = useMemo(() => {
     const m = new Map()
@@ -68,13 +47,7 @@ export default function MarketPulsePage({ stocks = [] }) {
       m.set(s.sector, g)
     })
     return [...m.entries()]
-      .map(([name, g]) => ({
-        name,
-        avg: g.n ? g.sum / g.n : 0,
-        up: g.up,
-        down: g.down,
-        n: g.n,
-      }))
+      .map(([name, g]) => ({ name, avg: g.n ? g.sum / g.n : 0, up: g.up, down: g.down, n: g.n }))
       .sort((a, b) => b.avg - a.avg)
   }, [data])
 
@@ -83,58 +56,84 @@ export default function MarketPulsePage({ stocks = [] }) {
   const bestSector = sectorMap[0]
 
   const stats = [
-    { label: 'IHSG', val: loading ? '…' : (ihsg?.price ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }), sub: loading ? 'memuat data real' : `${positive ? '+' : ''}${(ihsg?.change ?? 0).toLocaleString('id-ID')}%`, color: positive ? 'var(--up)' : 'var(--down)' },
-    { label: 'BREADTH', val: `${breadth >= 0 ? '+' : ''}${breadth}`, sub: 'advancing minus declining', color: breadth >= 0 ? 'var(--up)' : 'var(--down)' },
-    { label: 'SAHAM NAIK', val: adv, sub: `${withChange.length ? Math.round((adv / withChange.length) * 100) : 0}% dari saham aktif`, color: 'var(--up)' },
-    { label: 'SAHAM TURUN', val: dec, sub: `${withChange.length ? Math.round((dec / withChange.length) * 100) : 0}% dari saham aktif`, color: 'var(--down)' },
+    { label: 'S&P 500', val: loading ? '…' : (spx?.price ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 }), sub: loading ? 'memuat data real' : `${positive ? '+' : ''}${(spx?.change ?? 0).toLocaleString('en-US')}% hari ini`, c: positive ? 'var(--up)' : 'var(--down)' },
+    { label: 'Breadth', val: `${breadth >= 0 ? '+' : ''}${breadth}`, sub: 'advancing − declining', c: breadth >= 0 ? 'var(--up)' : 'var(--down)' },
+    { label: 'Aset Naik', val: adv, sub: `${withChange.length ? Math.round((adv / withChange.length) * 100) : 0}% dari aset aktif`, c: 'var(--up)' },
+    { label: 'Aset Turun', val: dec, sub: `${withChange.length ? Math.round((dec / withChange.length) * 100) : 0}% dari aset aktif`, c: 'var(--down)' },
   ]
 
   return (
-    <div className="fade-up" style={{ padding: '20px 16px 28px' }}>
-      <PH eyebrow="REAL-TIME MARKET FLOW" title="MARKET PULSE" />
+    <div className="fade-up">
+      <PH eyebrow="Real-time global market flow" title="Market Pulse" />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.12em' }}>
-          DATA REAL DARI IHSG + SELURUH SAHAM YANG TAMPIL
-        </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 6, height: 6, background: 'var(--accent)', display: 'inline-block', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text2)', letterSpacing: '0.12em' }}>
-            {loading ? 'SYNCING DATA...' : 'LIVE MARKET READ'}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+        <span style={{ fontSize: 12, color: 'var(--text2)' }}>Data real dari S&amp;P 500 dan seluruh aset yang tampil.</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            {loading ? 'Syncing data…' : 'Live market read'}
           </span>
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-4" style={{ marginBottom: 28 }}>
-        {stats.map((s) => <Stat key={s.label} {...s} />)}
+      <div className="stat-grid">
+        {stats.map((s) => (
+          <div key={s.label} className="stat-card" style={{ '--stat-accent': s.c }}>
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-value" style={{ color: s.c }}>{s.val}</div>
+            <div className="stat-sub">{s.sub}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid gap-px bg-line lg:grid-cols-[1.5fr_1fr]" style={{ marginBottom: 28 }}>
-        <section className="bg-card" style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.12em' }}>SEKTOR TERKUAT · RATA-RATA PERUBAHAN</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em' }}>{bestSector ? `${bestSector.name} TERKORELASI` : '—'}</div>
+      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)' }} className="dash-grid">
+        <section className="cg-card">
+          <div className="cg-card-head">
+            <Layers size={15} style={{ color: 'var(--accent)' }} />
+            <div>
+              <div className="cg-card-title">Sektor Terkuat</div>
+              <div className="cg-card-sub">{bestSector ? `${bestSector.name} terkorelasi` : 'rata-rata perubahan'}</div>
+            </div>
+            <span className="tag tag-accent" style={{ marginLeft: 'auto' }}>avg %</span>
           </div>
-          {sectorMap.length === 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>— BELUM ADA DATA —</div>}
-          {sectorMap.slice(0, 8).map((s) => <SectorRow key={s.name} s={s} />)}
+          <div style={{ padding: '4px 16px 14px' }}>
+            {sectorMap.length === 0 && <div className="empty-state" style={{ padding: 24 }}>— belum ada data —</div>}
+            {sectorMap.slice(0, 8).map((s) => (
+              <SectorBars key={s.name} name={s.name} change={s.avg} count={s.n} up={s.up} down={s.down} />
+            ))}
+          </div>
         </section>
 
-        <aside className="grid gap-px bg-line">
-          <div className="bg-card" style={{ padding: '18px 20px' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--up)', letterSpacing: '0.12em', marginBottom: 14 }}>TOP GAINERS · REAL MOVERS</div>
-            {gainers.length === 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>— TIDAK ADA —</div>}
-            {gainers.map((s) => <FlowRow key={s.ticker} s={s} up />)}
-          </div>
-          <div className="bg-card" style={{ padding: '18px 20px' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--down)', letterSpacing: '0.12em', marginBottom: 14 }}>TOP LOSERS · REAL MOVERS</div>
-            {losers.length === 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>— TIDAK ADA —</div>}
-            {losers.map((s) => <FlowRow key={s.ticker} s={s} up={false} />)}
-          </div>
-        </aside>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <section className="cg-card">
+            <div className="cg-card-head">
+              <TrendingUp size={15} style={{ color: 'var(--up)' }} />
+              <div className="cg-card-title">Top Gainers</div>
+              <span className="cg-card-sub" style={{ marginLeft: 'auto' }}>real movers</span>
+            </div>
+            <div style={{ padding: '4px 16px 12px' }}>
+              {gainers.length === 0 && <div className="empty-state" style={{ padding: 20 }}>— tidak ada —</div>}
+              {gainers.map((s) => <FlowRow key={s.ticker} s={s} up onSelect={onSelectStock} />)}
+            </div>
+          </section>
+
+          <section className="cg-card">
+            <div className="cg-card-head">
+              <TrendingDown size={15} style={{ color: 'var(--down)' }} />
+              <div className="cg-card-title">Top Losers</div>
+              <span className="cg-card-sub" style={{ marginLeft: 'auto' }}>real movers</span>
+            </div>
+            <div style={{ padding: '4px 16px 12px' }}>
+              {losers.length === 0 && <div className="empty-state" style={{ padding: 20 }}>— tidak ada —</div>}
+              {losers.map((s) => <FlowRow key={s.ticker} s={s} up={false} onSelect={onSelectStock} />)}
+            </div>
+          </section>
+        </div>
       </div>
 
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.06em' }}>
-        BREADTH = ADVANCING − DECLINING · DIHITUNG DARI RATA-RATA PERUBAHAN SAHAM YANG TERSEDIA
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.05em' }}>
+        <Activity size={10} />
+        BREADTH = ADVANCING − DECLINING · DIHITUNG DARI RATA-RATA PERUBAHAN ASET YANG TERSEDIA
       </div>
     </div>
   )

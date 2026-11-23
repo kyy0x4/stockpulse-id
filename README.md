@@ -1,11 +1,11 @@
-# PlotFinansial
+# PulseTerminal
 
-Platform web untuk analisa fundamental & teknikal saham Indonesia untuk investasi jangka panjang.
+Terminal analisa saham AS, kripto spot, berita global, dan indikator makro AS (FRED).
 
 ## Stack
 
 **Frontend** — React 19 + Vite 8 + Tailwind CSS 4 + Framer Motion + Recharts
-**Backend** — FastAPI + yfinance (data real saham IDX, suffix `.JK`)
+**Backend** — FastAPI + yfinance (saham AS, kripto `-USD`) + FRED (data makro, tanpa API key)
 **Deploy** — SnapDeploy (API) + Netlify/Vercel (frontend), keduanya free tier
 
 ## Struktur
@@ -13,7 +13,7 @@ Platform web untuk analisa fundamental & teknikal saham Indonesia untuk investas
 ```
 ├── backend/           # FastAPI + engine analisa
 │   ├── app/
-│   │   ├── data/      # daftar ticker IDX, mapping sektor
+│   │   ├── data/      # universe saham AS & kripto, mapping sektor
 │   │   ├── routers/   # endpoint API
 │   │   ├── services/  # fetch yfinance, analisa, scoring, cache
 │   │   └── jobs/      # cron refresh harian (pre-warm cache)
@@ -22,7 +22,7 @@ Platform web untuk analisa fundamental & teknikal saham Indonesia untuk investas
 ├── src/               # frontend React
 │   ├── api/           # client API + adapter (backend → komponen)
 │   ├── components/    # ui/ dashboard/ screener/ charts/ layout
-│   ├── pages/         # Dashboard, Screener, Watchlist, Market, Detail
+│   ├── pages/         # Dashboard, Screener, Watchlist, Market, Macro, News, Detail
 │   └── hooks/         # useStocks (fetch + fallback mock)
 ├── netlify.toml       # config deploy Netlify
 └── .env.example       # contoh env VITE_API_BASE
@@ -34,7 +34,8 @@ Platform web untuk analisa fundamental & teknikal saham Indonesia untuk investas
 # 1. Backend (port 8000)
 cd backend
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m uvicorn app.main:app --port 8000
+cp ../.env.example .env   # isi AUTH_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY, RESEND_API_KEY
+.venv/bin/python -m uvicorn app.main:app --port 8000 --env-file .env
 
 # 2. Frontend (port 5173) — terminal lain
 npm install
@@ -68,9 +69,13 @@ Gaya **Dark Mode (OLED)** + aksen hijau finansial, font **Fira Code/Fira Sans**,
 ```
 GET /api/health              → status
 GET /api/warm                → keep-alive + pre-warm cache (untuk monitor gratis)
-GET /api/tickers             → daftar ticker + sektor
+GET /api/tickers             → daftar aset (saham AS/kripto) + sektor
 GET /api/stocks?filter=...   → screener (sector, signal, min_score, q, limit)
-GET /api/stocks/BBCA         → detail + history 90 hari + analisa
+GET /api/stocks/AAPL         → detail + history 90 hari + analisa
+GET /api/market/index?code=SPX → riwayat indeks/aset (SPX, IXIC, DJI, BTC, ETH)
+GET /api/news?category=all   → berita global (us, crypto, macro, geopolitik)
+GET /api/macro               → snapshot indikator makro AS (FRED)
+GET /api/macro/series?ids=CPIAUCSL,UNRATE,FEDFUNDS → seri untuk chart
 ```
 
 Docs interaktif: `http://localhost:8000/docs`

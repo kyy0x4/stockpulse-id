@@ -1,165 +1,326 @@
-import { useState, useMemo } from 'react'
-import { Star } from 'lucide-react'
-import { Spark, SBar, PH, pct, sigColor, sigBg, viewStock, cap } from '../components/ui/DashboardComponents'
+import { useMemo, useState } from 'react'
+import {
+  Star, Download, ArrowUpDown, ChevronDown, ChevronUp, Activity,
+  TrendingUp, TrendingDown, Layers, Target,
+} from 'lucide-react'
+import { Spark, pct, viewStock, cap, vol, fmtPrice, kindLabel } from '../components/ui/DashboardComponents'
+import StockLogo from '../components/ui/StockLogo'
 
-const SIGNALS = ['All', 'Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
-const MIN_SCORES = [0, 60, 75]
+const KINDS = [
+  { id: 'all', label: 'Semua' },
+  { id: 'us_stock', label: 'Saham AS' },
+  { id: 'etf', label: 'ETF' },
+  { id: 'crypto', label: 'Kripto' },
+]
+const SIGNALS = [
+  { id: 'All', label: 'Semua' },
+  { id: 'Buy', label: 'Buy' },
+  { id: 'Hold', label: 'Hold' },
+  { id: 'Sell', label: 'Sell' },
+]
+const MIN_SCORES = [
+  { v: 0, label: 'Semua' },
+  { v: 60, label: '≥ 60' },
+  { v: 75, label: '≥ 75' },
+]
 
-function exportCSV(rows) {
-  const header = ['Ticker', 'Nama', 'Sektor', 'Harga', 'Change %', 'Signal', 'Skor', 'RSI', 'Trend', 'PER', 'ROE', 'Growth', 'DER', 'Kapitalisasi']
-  const lines = rows.map(s => [
-    s.ticker,
-    `"${(s.name || '').replace(/"/g, '""')}"`,
-    s.sector,
-    s.price,
-    s.changePct,
-    s.signal,
-    s.composite,
-    s.rsi ?? '',
-    `"${s.trend || ''}"`,
-    s.pe ?? '',
-    s.roe != null ? `${s.roe}%` : '',
-    s.growth != null ? `${s.growth}%` : '',
-    s.der ?? '',
-    `"${cap(s.mktCap) ?? ''}"`,
-  ])
-  const csv = [header, ...lines].map(r => r.join(',')).join('\n')
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `plotfinansial-screener-${new Date().toISOString().slice(0, 10)}.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
+const COLUMNS = [
+  { k: 'ticker', label: 'Aset', cls: 'l sticky-col' },
+  { k: 'price', label: 'Harga', cls: 'r' },
+  { k: 'changePct', label: '24h %', cls: 'r' },
+  { k: 'volume', label: 'Volume', cls: 'r' },
+  { k: 'mktCap', label: 'Kap.', cls: 'r' },
+  { k: 'sector', label: 'Sektor', cls: 'l' },
+  { k: 'pe', label: 'P/E', cls: 'r' },
+  { k: 'roe', label: 'ROE%', cls: 'r' },
+  { k: 'growth', label: 'Growth', cls: 'r' },
+  { k: 'rsi', label: 'RSI', cls: 'c' },
+  { k: 'trend', label: 'Trend', cls: 'c' },
+  { k: 'composite', label: 'Skor', cls: 'c' },
+  { k: 'signal', label: 'Signal', cls: 'c' },
+]
 
-export default function ScreenerPage({ theme = 'dark', onSelectStock, onToggleFav, favorites = [], stocks = [] }) {
+export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [], stocks = [] }) {
   const data = useMemo(() => stocks.map(viewStock), [stocks])
-  const sectors = useMemo(() => ['All', ...new Set(data.map(s => s.sector).filter(Boolean))], [data])
+  const sectors = useMemo(
+    () => ['All', ...Array.from(new Set(data.map((s) => s.sector).filter(Boolean)))].sort((a, b) => (a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b))),
+    [data],
+  )
 
+  const [kind, setKind] = useState('all')
   const [sector, setSector] = useState('All')
   const [sig, setSig] = useState('All')
   const [minScore, setMinScore] = useState(0)
   const [sortK, setSortK] = useState('composite')
   const [sortD, setSortD] = useState(-1)
 
-  const rows = useMemo(() =>
-    data
-      .filter(s => sector === 'All' || s.sector === sector)
-      .filter(s => sig === 'All' || s.signal === sig)
-      .filter(s => (s.composite ?? 0) >= minScore)
-      .sort((a, b) => {
-        const av = sortK === 'pe' ? (a.pe ?? 999) : (a[sortK] ?? 0)
-        const bv = sortK === 'pe' ? (b.pe ?? 999) : (b[sortK] ?? 0)
-        return (av - bv) * sortD
-      })
-  , [data, sector, sig, minScore, sortK, sortD])
+  const filtered = useMemo(
+    () =>
+      data
+        .filter((s) => kind === 'all' || s.kind === kind)
+        .filter((s) => sector === 'All' || s.sector === sector)
+        .filter((s) => sig === 'All' || s.signal === sig)
+        .filter((s) => (s.composite ?? 0) >= minScore),
+    [data, kind, sector, sig, minScore],
+  )
+
+  const rows = useMemo(() => {
+    const list = [...filtered]
+    list.sort((a, b) => {
+      const av = a[sortK] ?? (sortK === 'pe' ? 999999 : 0)
+      const bv = b[sortK] ?? (sortK === 'pe' ? 999999 : 0)
+      if (typeof av === 'string' || typeof bv === 'string') {
+        return String(av).localeCompare(String(bv)) * sortD
+      }
+      return (av - bv) * sortD
+    })
+    return list
+  }, [filtered, sortK, sortD])
+
+  const stats = useMemo(() => {
+    const n = data.length
+    const avg = n ? Math.round(data.reduce((sum, s) => sum + (s.composite ?? 0), 0) / n) : 0
+    const buy = data.filter((s) => s.signal === 'Buy' || s.signal === 'Strong Buy').length
+    const gainers = data.filter((s) => (s.changePct ?? 0) > 0).length
+    return { n, avg, buy, gainers }
+  }, [data])
 
   const handleSort = (k) => {
-    if (sortK === k) setSortD(d => (d === 1 ? -1 : 1))
+    if (sortK === k) setSortD((d) => (d === 1 ? -1 : 1))
     else { setSortK(k); setSortD(-1) }
   }
 
-  const Th = ({ k, label }) => (
-    <th onClick={() => handleSort(k)} style={{
-      padding: '8px 10px', textAlign: 'right', cursor: 'pointer', userSelect: 'none',
-      fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em',
-      color: sortK === k ? 'var(--accent)' : 'var(--text3)',
-      background: 'var(--bg3)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
-    }}>
-      {label}{sortK === k ? (sortD === -1 ? ' ↓' : ' ↑') : ''}
-    </th>
-  )
-
-  const trendCol = (t) => t === 'Uptrend' ? 'var(--up)' : t === 'Downtrend' ? 'var(--down)' : 'var(--hold)'
+  const exportCSV = () => {
+    const header = ['Ticker', 'Nama', 'Jenis', 'Sektor', 'Harga', 'Change%', 'Volume', 'Kapitalisasi', 'P/E', 'ROE%', 'Growth%', 'RSI', 'Trend', 'Skor', 'Signal']
+    const lines = rows.map((s) => [
+      s.ticker,
+      `"${(s.name || '').replace(/"/g, '""')}"`,
+      kindLabel(s.kind),
+      `"${s.sector || ''}"`,
+      s.price ?? '',
+      s.changePct ?? '',
+      s.volume ?? '',
+      s.mktCap ?? '',
+      s.pe ?? '',
+      s.roe ?? '',
+      s.growth ?? '',
+      s.rsi ?? '',
+      s.trend ?? '',
+      s.composite ?? '',
+      s.signal ?? '',
+    ])
+    const csv = [header, ...lines].map((r) => r.join(',')).join('\n')
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `screener-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
 
   return (
-    <div className="fade-up" style={{ padding: '20px 16px 28px' }}>
-      <PH eyebrow="FUNDAMENTAL + TEKNIKAL · IDX" title="STOCK SCREENER" />
+    <div className="fade-up">
+      {/* Page head */}
+      <div className="page-head">
+        <div>
+          <div className="page-head-eyebrow">Real-time · US Stock · ETF · Crypto</div>
+          <h1 className="page-head-title">Asset Screener</h1>
+          <p className="page-head-sub">Filter, urutkan, dan analisa {stats.n} aset dengan skor fundamental + teknikal.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span className="tag tag-green tag-dot">Live</span>
+          <button className="pill" onClick={exportCSV}>
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
+      </div>
 
-      <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', marginBottom: 1, background: 'var(--border)' }}>
-        {sectors.map(s => <button key={s} onClick={() => setSector(s)} className={`fbtn ${sector === s ? 'active' : ''}`}>{s}</button>)}
-      </div>
-      <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', marginBottom: 1, background: 'var(--border)' }}>
-        {SIGNALS.map(x => <button key={x} onClick={() => setSig(x)} className={`fbtn ${sig === x ? 'active' : ''}`}>{x}</button>)}
-      </div>
-      <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20, background: 'var(--border)' }}>
-        <span style={{ background: 'var(--bg2)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', padding: '4px 12px', alignSelf: 'center' }}>MIN SKOR</span>
-        {MIN_SCORES.map(m => <button key={m} onClick={() => setMinScore(m)} className={`fbtn ${minScore === m ? 'active' : ''}`}>{m === 0 ? 'SEMUA' : `≥ ${m}`}</button>)}
-        <button onClick={() => exportCSV(rows)} style={{ marginLeft: 'auto', marginRight: 1, background: 'var(--bg2)', border: '1px solid var(--border2)', color: 'var(--text2)', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '4px 10px', cursor: 'pointer', letterSpacing: '0.04em' }}>
-          ⬇ EXPORT CSV ({rows.length})
-        </button>
+      {/* Stats */}
+      <div className="stat-grid">
+        <StatCard label="Total Aset" value={stats.n} sub={`${data.filter((s) => s.kind === 'crypto').length} kripto · ${data.filter((s) => s.kind === 'etf').length} ETF`} icon={<Layers size={13} />} accent="var(--accent)" />
+        <StatCard label="Rata-rata Skor" value={stats.avg} sub="composite 0–100" icon={<Target size={13} />} accent="var(--accent)" />
+        <StatCard label="Sinyal Buy" value={stats.buy} sub={`${stats.n ? Math.round((stats.buy / stats.n) * 100) : 0}% dari universe`} icon={<TrendingUp size={13} />} accent="var(--up)" valueColor="var(--up)" />
+        <StatCard label="Menguat Hari Ini" value={stats.gainers} sub={`${stats.n ? Math.round((stats.gainers / stats.n) * 100) : 0}% aset hijau`} icon={<Activity size={13} />} accent="var(--down)" valueColor="var(--text)" />
       </div>
 
-      <div style={{ overflowX: 'auto', border: '1px solid var(--border)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>SAHAM</th>
-              <Th k="price" label="HARGA" />
-              <Th k="changePct" label="CHG%" />
-              <th style={{ padding: '8px 10px', textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>SEKTOR</th>
-              <Th k="pe" label="P/E" />
-              <Th k="roe" label="ROE%" />
-              <Th k="growth" label="GROWTH" />
-              <Th k="rsi" label="RSI" />
-              <th style={{ padding: '8px 10px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', background: 'var(--bg3)', borderBottom: '1px solid var(--border)' }}>TREND</th>
-              <Th k="fundScore" label="FUND." />
-              <Th k="techScore" label="TECH." />
-              <Th k="composite" label="TOTAL" />
-              <th style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>SIGNAL</th>
-              <th style={{ padding: '8px 10px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)' }} />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(s => (
-              <tr key={s.ticker} className="trow" onClick={() => onSelectStock?.(s)} style={{ cursor: 'pointer' }}>
-                <td style={{ padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Spark data={s.sparkline} up={s.changePct >= 0} w={44} h={22} />
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>{s.ticker}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{String(s.name || '').slice(0, 22)}</div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)', fontWeight: 500 }}>{s.price.toLocaleString('id-ID')}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: s.changePct >= 0 ? 'var(--up)' : 'var(--down)', fontWeight: 500 }}>{pct(s.changePct)}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'left' }}><span className="chip">{s.sector}</span></td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text2)' }}>{s.pe != null ? `${s.pe}x` : '—'}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text2)' }}>{s.roe != null ? `${s.roe}%` : '—'}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: s.growth != null && s.growth > 10 ? 'var(--up)' : 'var(--text2)' }}>{s.growth != null ? `${s.growth}%` : '—'}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text2)' }}>{s.rsi ?? '—'}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'center' }}>
-                  {s.trend ? (
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 6px', border: '1px solid', borderColor: trendCol(s.trend), color: trendCol(s.trend), letterSpacing: '0.06em' }}>{s.trend}</span>
-                  ) : '—'}
-                </td>
-                <td style={{ padding: '10px 10px' }}><div style={{ display: 'flex', justifyContent: 'flex-end' }}><SBar v={s.fundScore} color="var(--accent)" /></div></td>
-                <td style={{ padding: '10px 10px' }}><div style={{ display: 'flex', justifyContent: 'flex-end' }}><SBar v={s.techScore} color="var(--up)" /></div></td>
-                <td style={{ padding: '10px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: s.composite >= 75 ? 'var(--up)' : s.composite >= 60 ? 'var(--hold)' : 'var(--down)' }}>{s.composite ?? '—'}</td>
-                <td style={{ padding: '10px 10px', textAlign: 'right' }}>
-                  <span className="sig" style={{ color: sigColor(s.signal, theme), background: sigBg(s.signal), borderColor: `${sigColor(s.signal, theme)}40` }}>{s.signal}</span>
-                </td>
-                <td style={{ padding: '10px 10px', textAlign: 'right' }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: favorites.includes(s.ticker) ? 'var(--accent)' : 'var(--text3)', padding: 4, lineHeight: 0 }}
-                    aria-label={`Watchlist ${s.ticker}`}
-                  >
-                    <Star size={15} fill={favorites.includes(s.ticker) ? 'currentColor' : 'none'} />
-                  </button>
-                </td>
-              </tr>
+      {/* Kind tabs */}
+      <div className="tabstrip">
+        {KINDS.map((k) => (
+          <button key={k.id} className={`tabstrip-tab ${kind === k.id ? 'active' : ''}`} onClick={() => setKind(k.id)}>
+            {k.label}
+            <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text3)' }}>
+              {k.id === 'all' ? data.length : data.filter((s) => s.kind === k.id).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginRight: 2 }}>SEKTOR</span>
+          {sectors.map((s) => (
+            <button key={s} className={`pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)} style={{ height: 25, fontSize: 11.5 }}>
+              {s === 'All' ? 'Semua' : s}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="seg">
+            {SIGNALS.map((s) => (
+              <button key={s.id} className={`seg-item ${sig === s.id ? 'active' : ''}`} onClick={() => setSig(s.id)}>
+                {s.label}
+              </button>
             ))}
-          </tbody>
-        </table>
-        {rows.length === 0 && (
-          <div style={{ padding: '48px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text3)' }}>— TIDAK ADA SAHAM DITEMUKAN —</div>
-        )}
+          </div>
+          <div className="seg">
+            {MIN_SCORES.map((m) => (
+              <button key={m.v} className={`seg-item ${minScore === m.v ? 'active' : ''}`} onClick={() => setMinScore(m.v)}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-      <div style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.06em' }}>
-        {rows.length} SAHAM · KLIK KOLOM UNTUK SORTIR
+
+      {/* Table */}
+      <div className="table-shell">
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="l sticky-col" style={{ minWidth: 210 }}>
+                  <button onClick={() => handleSort('ticker')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'inherit', font: 'inherit', cursor: 'pointer' }} className={sortK === 'ticker' ? 'sorted' : ''}>
+                    Aset <SortIcon active={sortK === 'ticker'} dir={sortD} />
+                  </button>
+                </th>
+                {COLUMNS.slice(1).map((c) => (
+                  <th key={c.k} className={`${c.cls} ${sortK === c.k ? 'sorted' : ''}`} onClick={() => handleSort(c.k)}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {c.label} <SortIcon active={sortK === c.k} dir={sortD} />
+                    </span>
+                  </th>
+                ))}
+                <th className="c" style={{ width: 44 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((s, i) => {
+                const isFav = favorites.includes(s.ticker)
+                const up = (s.changePct ?? 0) >= 0
+                return (
+                  <tr key={s.ticker} onClick={() => onSelectStock?.(s)}>
+                    <td className="l sticky-col">
+                      <div className="cell-ticker">
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text3)', width: 18, textAlign: 'right' }}>{i + 1}</span>
+                        <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className="cell-sym">{s.ticker}</span>
+                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 4px' }}>
+                              {s.kind === 'crypto' ? 'KRP' : s.kind === 'etf' ? 'ETF' : 'US'}
+                            </span>
+                          </div>
+                          <div className="cell-name">{s.name}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="num t-strong">{fmtPrice(s.price, s.kind)}</td>
+
+                    <td className="num" style={{ color: up ? 'var(--up)' : 'var(--down)', fontWeight: 600 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                        {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {pct(s.changePct)}
+                      </span>
+                    </td>
+
+                    <td className="num t-soft">{vol(s.volume) ?? '—'}</td>
+                    <td className="num t-soft">{cap(s.mktCap) ?? '—'}</td>
+                    <td className="l">
+                      <span className="tag tag-neutral">{s.sector}</span>
+                    </td>
+                    <td className="num t-soft">{s.pe != null ? `${Number(s.pe).toFixed(1)}x` : '—'}</td>
+                    <td className="num t-soft">{s.roe != null ? `${Number(s.roe).toFixed(1)}%` : '—'}</td>
+                    <td className="num" style={{ color: s.growth != null && s.growth > 10 ? 'var(--up)' : 'var(--text2)' }}>
+                      {s.growth != null ? `${Number(s.growth).toFixed(1)}%` : '—'}
+                    </td>
+                    <td className="c num" style={{ color: rsiColor(s.rsi) }}>{s.rsi != null ? Number(s.rsi).toFixed(0) : '—'}</td>
+                    <td className="c">
+                      {s.trend ? (
+                        <span className={`tag ${s.trend === 'Uptrend' ? 'tag-green' : s.trend === 'Downtrend' ? 'tag-red' : 'tag-amber'}`}>
+                          {s.trend}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="c">
+                      <ScoreCell value={s.composite ?? 0} />
+                    </td>
+                    <td className="c">
+                      <span className={`tag ${s.signal === 'Buy' ? 'tag-green' : s.signal === 'Sell' ? 'tag-red' : 'tag-amber'} tag-dot`}>
+                        {s.signal}
+                      </span>
+                    </td>
+                    <td className="c">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: isFav ? 'var(--accent)' : 'var(--text3)', padding: 4, lineHeight: 0 }}
+                        aria-label="Watchlist"
+                      >
+                        <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          {rows.length === 0 && (
+            <div className="empty-state">— Tidak ada aset yang cocok dengan filter —</div>
+          )}
+        </div>
       </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text3)' }}>
+        <span>{rows.length} / {data.length} aset ditampilkan</span>
+        <span>Klik header kolom untuk mengurutkan</span>
+      </div>
+    </div>
+  )
+}
+
+function SortIcon({ active, dir }) {
+  if (!active) return <ArrowUpDown size={10} style={{ opacity: 0.4 }} />
+  return dir === -1 ? <ChevronDown size={11} color="var(--accent)" /> : <ChevronUp size={11} color="var(--accent)" />
+}
+
+function rsiColor(rsi) {
+  if (rsi == null) return 'var(--text3)'
+  if (rsi >= 70) return 'var(--down)'
+  if (rsi <= 30) return 'var(--up)'
+  return 'var(--text2)'
+}
+
+function ScoreCell({ value }) {
+  const color = value >= 80 ? 'var(--up)' : value >= 60 ? 'var(--hold)' : 'var(--down)'
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', minWidth: 84 }}>
+      <div className="sbar-track" style={{ width: 44 }}>
+        <div className="sbar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
+      </div>
+      <span className="num" style={{ color, fontWeight: 600, width: 22, textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub, icon, accent, valueColor = 'var(--text)' }) {
+  return (
+    <div className="stat-card" style={{ '--stat-accent': accent }}>
+      <div className="stat-label">{icon}{label}</div>
+      <div className="stat-value" style={{ color: valueColor }}>{value}</div>
+      <div className="stat-sub">{sub}</div>
     </div>
   )
 }
