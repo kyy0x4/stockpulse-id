@@ -84,7 +84,10 @@ export function AuthProvider({ children }) {
     if (!supabase) throw new Error('Supabase belum dikonfigurasi untuk login Google.')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth?google=1` },
+      options: {
+        redirectTo: `${window.location.origin}/?google=1`,
+        queryParams: { prompt: 'select_account' }
+      },
     })
     if (error) throw new Error(error.message)
   }
