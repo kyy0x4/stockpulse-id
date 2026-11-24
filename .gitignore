@@ -28,6 +28,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Google OAuth credentials (sensitive - jangan commit)
+google_oauth_credentials.txt
+
 # Backend
 __pycache__/
 *.pyc
