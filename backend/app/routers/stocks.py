@@ -14,6 +14,7 @@ from app.services.cache import get, set as cache_set
 from app.services.jsonutil import sanitize
 from app.services.news import COMPANY_NAMES, fetch_news
 import app.services.analysis_runner as runner
+from app.data.tickers import NEW_ASSET_TICKERS
 
 router = APIRouter(prefix="/api", tags=["stocks"])
 
@@ -138,10 +139,32 @@ def _warm_async():
     from app.services.cache import set as cache_set
     try:
         results = runner.build_all()
-        cache_set("screen:all", sanitize(results), ttl=60 * 60 * 6)
+        # Self-heal: jangan overwrites cache lama yang masih valid
+        # kalau build_all gagal (results kosong/partial < universe saat ini)
+        from app.data.tickers import NEW_ASSETS
+        expected = {}
+        for _t, _m in NEW_ASSETS.items():
+            _k = _m.get("kind", "us_stock")
+            expected[_k] = expected.get(_k, 0) + 1
+        counts = {}
+        for s in results:
+            k = s.get("kind")
+            if k:
+                counts[k] = counts.get(k, 0) + 1
+        stale = any(counts.get(k, 0) < n for k, n in expected.items())
+        if stale:
+            log_note = f"build_all hasil partial ({len(results)} rows), skip overwrite cache"
+            try:
+                import logging
+                logging.getLogger(__name__).warning(log_note)
+            except Exception:
+                pass
+        else:
+            cache_set("screen:all", sanitize(results), ttl=60 * 60 * 6)
         try:
             from app.services import supabase as db
-            db.upsert_quotes(results)
+            if not stale:
+                db.upsert_quotes(results)
         except Exception:
             pass
     except Exception:
@@ -182,6 +205,32 @@ def _looks_complete(s):
     return True
 
 
+def _data_is_stale(cached):
+    """Deteksi cache/DB yang sudah usang vs universe ticker saat ini.
+    
+    Kalau jumlah ticker per-kind di data < jumlah ticker per-kind di
+    NEW_ASSETS (versi kode saat ini), berarti data dibuat dari kode lama
+    (mis. baru 10 crypto, sekarang 39) → invalidate & rebuild.
+    """
+    if not cached:
+        return True
+    from app.data.tickers import NEW_ASSETS
+    expected = {}
+    for t, m in NEW_ASSETS.items():
+        k = m.get("kind", "us_stock")
+        expected[k] = expected.get(k, 0) + 1
+    counts = {}
+    for s in cached:
+        k = s.get("kind")
+        if not k:
+            return True  # ada data tanpa kind → stale
+        counts[k] = counts.get(k, 0) + 1
+    for kind, need in expected.items():
+        if counts.get(kind, 0) < need:
+            return True
+    return False
+
+
 @router.get("/stocks")
 def list_stocks(
     sector: Optional[str] = None,
@@ -192,6 +241,9 @@ def list_stocks(
     limit: int = Query(240, le=300),
 ):
     cached = get("screen:all")
+    # Self-heal: kalau cache dalam tapi isinya usang (universe lama), buang & rebuild
+    if cached is not None and _data_is_stale(cached):
+        cached = None
     if cached is not None:
         results = [s for s in cached if _matches(s, sector, signal, min_score, q, kind)]
     else:
@@ -203,7 +255,8 @@ def list_stocks(
             quotes = db.fetch_quotes(limit=400)
             if quotes:
                 merged = [dict(s, **(s.get("payload") or {})) for s in quotes]
-                if all(_looks_complete(s) for s in merged[:20]):
+                # Buang snapshot lama (mis. 10 crypto) — rebuild dari source of truth
+                if all(_looks_complete(s) for s in merged[:20]) and not _data_is_stale(merged):
                     results = [s for s in merged if _matches(s, sector, signal, min_score, q, kind)]
         except Exception:
             pass
