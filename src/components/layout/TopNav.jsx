@@ -132,12 +132,12 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
             )
           })}
 
-          <div ref={moreRef} style={{ position: 'relative' }}>
+          <div ref={moreRef} style={{ position: 'relative', zIndex: 50 }}>
             <button
               className={`topnav-link ${MORE_NAV.some((m) => m.id === page) ? 'active' : ''}`}
               onClick={() => setMoreOpen((v) => !v)}
             >
-              More <ChevronDown size={13} />
+              More <ChevronDown size={13} style={{ transform: moreOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
             <AnimatePresence>
               {moreOpen && (

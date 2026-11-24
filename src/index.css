@@ -190,7 +190,7 @@ html, body, #root {
   gap: 2px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  /* overflow: hidden; */ /* Matikan ini supaya dropdown more tidak terpotong */
 }
 @media (max-width: 1179px) {
   .topnav-links { display: none; }
