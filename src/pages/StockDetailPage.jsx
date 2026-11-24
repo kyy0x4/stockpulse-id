@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Spark, SBar, viewStock, fmtPrice, kindLabel, PriceChart } from '../components/ui/DashboardComponents'
 import { ChevronLeft, Star, TrendingUp, TrendingDown, Clock, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
@@ -73,7 +73,14 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   const sector = detail?.sector ?? s.sector
   const positive = (change ?? 0) >= 0
 
-  const series = history.map(h => h.close).filter(n => n != null)
+  const series = useMemo(() => {
+    if (!history || history.length === 0) return []
+    // Trading days approximation: 1mo≈21, 3mo≈63, 6mo≈126, 1y≈252, 5y≈1260
+    const daysMap = { '1mo': 21, '3mo': 63, '6mo': 126, '1y': 252, '5y': 1260 }
+    const n = daysMap[period] || 126
+    return history.slice(-n).map((h) => h.close).filter((v) => v != null)
+  }, [history, period])
+
   const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : positive
   const periodReturn = series.length >= 2 && series[0] ? ((series[series.length - 1] - series[0]) / series[0]) * 100 : null
 
@@ -180,7 +187,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
 
             {series.length >= 2 ? (
               <>
-                <PriceChart rows={history} height={380} />
+                <PriceChart rows={history} height={380} range={period} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', flexWrap: 'wrap' }}>
                   <span>{series.length} sesi · {PERIODS.find((p) => p.id === period)?.label || period}</span>
                   <span>Low {fmtPrice(Math.min(...series), merged.kind)} · High {fmtPrice(Math.max(...series), merged.kind)}</span>

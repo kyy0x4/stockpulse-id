@@ -1,6 +1,7 @@
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { createChart, LineSeries } from 'lightweight-charts'
+import { useTheme } from '../../theme/ThemeProvider'
 
 export const fmt = (n, d = 2) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
 export const pct = (n) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`
@@ -134,46 +135,87 @@ export function LineChart({ values, up, w = 560, h = 180, labels = null }) {
 
 // Price chart via TradingView Lightweight Charts (line series).
 // rows: [{ date: 'YYYY-MM-DD' | number (ms|s) | Date, close: number }]
-export function PriceChart({ rows, height = 260 }) {
+// Props:
+// - rows: array data history
+// - height: tinggi chart (default 260)
+// - range: period filter (mis '1mo', '3mo', '6mo', '1y', '5y') — memfilter rows
+// - followTheme: boolean — kalau true, chart warna adaptif sesuai tema (light/dark)
+export function PriceChart({ rows, height = 260, range = null, followTheme = true }) {
   const containerRef = useRef(null)
-  const key = JSON.stringify((rows || []).map((r) => [r?.date, r?.close]))
+  const chartRef = useRef(null)
+  const { isDark } = useTheme()
+
+  // Filter rows berdasarkan range — ambil N data terbaru (bukan filter tanggal)
+  const filteredRows = useMemo(() => {
+    if (!rows || rows.length === 0) return []
+    const daysMap = { '1mo': 21, '3mo': 63, '6mo': 126, '1y': 252, '2y': 504, '3y': 756, '5y': 1260 }
+    if (!range || range === 'all') return rows
+    const n = daysMap[range] || daysMap['3mo']
+    return rows.slice(-n)
+  }, [rows, range])
+
+  const dataKey = JSON.stringify((filteredRows || []).map((r) => [r?.date, r?.close]))
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
     const H = height || 260
+    const theme = followTheme ? (isDark ? 'dark' : 'light') : 'dark'
+
+    // Warna tema — DARK: navy bg, cyan text, turquoise line
+    // Warna tema — LIGHT: white bg, navy text, cyan line
+    const palette = theme === 'dark'
+      ? {
+          bg: '#030D1E',
+          text: '#8CA6D9',
+          grid: 'rgba(42, 58, 82, 0.5)',
+          line: '#22E3D5',
+          crosshair: '#22E3D5',
+          labelBg: '#1A2638',
+          border: '#2A3A52',
+        }
+      : {
+          bg: '#FBFBFB',
+          text: '#030D1E',
+          grid: 'rgba(240, 244, 255, 0.5)',
+          line: '#0783F7',
+          crosshair: '#0DC4E9',
+          labelBg: '#ffffff',
+          border: '#D1D9E8',
+        }
 
     const chart = createChart(container, {
       width: container.clientWidth || 640,
       height: H,
       layout: {
-        background: { type: 'Solid', color: '#030D1E' },
-        textColor: '#8CA6D9',
+        background: { type: 'Solid', color: palette.bg },
+        textColor: palette.text,
         fontSize: 10,
         fontFamily: 'DM Mono, monospace',
       },
       grid: {
-        vertLines: { color: 'rgba(42, 58, 82, 0.5)', style: 1 },
-        horzLines: { color: 'rgba(42, 58, 82, 0.5)', style: 1 },
+        vertLines: { color: palette.grid, style: 1 },
+        horzLines: { color: palette.grid, style: 1 },
       },
       crosshair: {
         mode: 'magnet',
-        vertLine: { color: '#22E3D5', labelBackgroundColor: '#1A2638' },
-        horzLine: { color: '#22E3D5', labelBackgroundColor: '#1A2638' },
+        vertLine: { color: palette.crosshair, labelBackgroundColor: palette.labelBg },
+        horzLine: { color: palette.crosshair, labelBackgroundColor: palette.labelBg },
       },
-      rightPriceScale: { borderColor: '#2A3A52' },
-      timeScale: { borderColor: '#2A3A52', timeVisible: true },
+      rightPriceScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border, timeVisible: true },
     })
 
     const series = chart.addSeries(LineSeries, {
-      color: '#22E3D5',
+      color: palette.line,
       lineWidth: 2,
       lastValueVisible: true,
       priceLineVisible: false,
     })
+    chartRef.current = chart
 
-    const data = (rows || [])
+    const data = (filteredRows || [])
       .filter((r) => r && r.close != null)
       .map((r) => {
         let d
@@ -198,8 +240,9 @@ export function PriceChart({ rows, height = 260 }) {
     return () => {
       ro.disconnect()
       chart.remove()
+      chartRef.current = null
     }
-  }, [key, height])
+  }, [dataKey, height, isDark, followTheme])
 
   return <div ref={containerRef} style={{ width: '100%', height: height || 260, minHeight: 120 }} />
 }

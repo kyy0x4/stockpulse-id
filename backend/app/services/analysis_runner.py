@@ -168,18 +168,16 @@ def get_stock_detail(ticker):
         return fetch_history(code, period=period, interval=interval)
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        f_hist = pool.submit(_fetch_history, "3mo", "1d")
+        # Fetch 5y buat semua period filter (1M/3M/6M/12M/5Y)
+        f_hist = pool.submit(_fetch_history, "5y", "1d")
         f_week = pool.submit(_fetch_history, WEEKLY_PERIOD, WEEKLY_INTERVAL)
-        f_year = pool.submit(_fetch_history, "5y", "1d")
         f_info = pool.submit(fetch_info, code)
         history = f_hist.result()
         weekly = f_week.result()
-        yearly = f_year.result()
         info = f_info.result()
 
     stock = analyze_stock(code, history=history, weekly=weekly, info=info, use_cache=False)
     stock["history"] = history
-    stock["seasonality"] = compute_seasonality(yearly)
     stock["fundamental"]["metrics"]["market_cap"] = stock["market_cap"]
     return stock
 
