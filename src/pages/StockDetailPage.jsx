@@ -25,12 +25,27 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   useEffect(() => {
     let alive = true
     setLoadingDetail(true)
+    setLoadingHistory(true)
     api.detail(s.ticker)
       .then((d) => alive && setDetail(d))
       .catch(() => alive && setDetail(null))
-      .finally(() => alive && setLoadingDetail(false))
+      .finally(() => {
+        if (alive) {
+          setLoadingDetail(false)
+          setLoadingHistory(false)
+        }
+      })
     return () => { alive = false }
   }, [s.ticker])
+
+  // Simulate loading saat ganti period (bukan re-fetch)
+  useEffect(() => {
+    if (period !== '3mo') {
+      setLoadingHistory(true)
+      const t = setTimeout(() => setLoadingHistory(false), 300)
+      return () => clearTimeout(t)
+    }
+  }, [period])
 
   const merged = detail
     ? viewStock({
@@ -41,14 +56,25 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
       })
     : s
   const history = detail?.history || []
-  const series = history.slice(-90).map(h => h.close).filter(n => n != null)
   const seasonality = detail?.seasonality
   const price = detail?.price ?? s.price
   const change = detail?.change ?? s.changePct
   const name = detail?.name ?? s.name
   const sector = detail?.sector ?? s.sector
-  const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : (change ?? 0) >= 0
   const positive = (change ?? 0) >= 0
+  const [period, setPeriod] = useState('3mo')
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const PERIODS = [
+    { id: '1mo', label: '1M' },
+    { id: '3mo', label: '3M' },
+    { id: '6mo', label: '6M' },
+    { id: '1y', label: '12M' },
+    { id: '5y', label: '5Y' },
+  ]
+
+  const series = history.map(h => h.close).filter(n => n != null)
+  const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : positive
   const periodReturn = series.length >= 2 && series[0] ? ((series[series.length - 1] - series[0]) / series[0]) * 100 : null
 
   const f = merged.fundamental || {}
@@ -117,26 +143,52 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
 
           <div style={{ marginTop: 20, border: '1px solid var(--border)', background: 'var(--bg3)', padding: 16, borderRadius: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <p style={{ fontSize: 13, fontWeight: 600 }}>Performa Harga {history.length > 0 ? '· 3 bulan' : '· 7 sesi terakhir'}</p>
-              {loadingDetail && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text3)', marginLeft: 4 }} />}
+              <p style={{ fontSize: 13, fontWeight: 600 }}>
+                Performa Harga · {PERIODS.find((p) => p.id === period)?.label || period}
+              </p>
+              {loadingHistory && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text3)', marginRight: 8 }} />}
               {periodReturn != null && (
                 <span className={`tag ${periodReturn >= 0 ? 'tag-green' : 'tag-red'}`} style={{ marginLeft: 'auto' }}>
-                  {periodReturn >= 0 ? '+' : ''}{periodReturn.toFixed(2)}% dalam 3 bulan
+                  {periodReturn >= 0 ? '+' : ''}{periodReturn.toFixed(2)}% {PERIODS.find((p) => p.id === period)?.label || ''}
                 </span>
               )}
             </div>
+
+            {/* Interval Selector */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+              {PERIODS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriod(p.id)}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${period === p.id ? 'var(--accent)' : 'var(--border)'}`,
+                    background: period === p.id ? 'var(--accent-dim)' : 'transparent',
+                    color: period === p.id ? 'var(--accent)' : 'var(--text2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
             {series.length >= 2 ? (
               <>
-                <PriceChart rows={history.slice(-90)} />
+                <PriceChart rows={history} height={380} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', flexWrap: 'wrap' }}>
-                  <span>{series.length} sesi perdagangan</span>
+                  <span>{series.length} sesi · {PERIODS.find((p) => p.id === period)?.label || period}</span>
                   <span>Low {fmtPrice(Math.min(...series), merged.kind)} · High {fmtPrice(Math.max(...series), merged.kind)}</span>
                 </div>
               </>
             ) : (
-              <Spark data={s.sparkline} up={trendPositive} w={800} h={120} fluid />
+              <Spark data={s.sparkline} up={trendPositive} w={800} h={200} fluid />
             )}
-          </div>
 
           <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             <div>

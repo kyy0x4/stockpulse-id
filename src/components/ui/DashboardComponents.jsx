@@ -1,4 +1,7 @@
 
+import { useEffect, useRef } from 'react'
+import { createChart, LineSeries } from 'lightweight-charts'
+
 export const fmt = (n, d = 2) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
 export const pct = (n) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`
 
@@ -129,95 +132,76 @@ export function LineChart({ values, up, w = 560, h = 180, labels = null }) {
   )
 }
 
-// Price chart dengan sumbu harga & tanggal (dipakai di detail aset dan Market).
+// Price chart via TradingView Lightweight Charts (line series).
+// rows: [{ date: 'YYYY-MM-DD' | number (ms|s) | Date, close: number }]
 export function PriceChart({ rows, height = 260 }) {
-  const pts = (rows || []).filter((r) => r && r.close != null)
-  if (pts.length < 2) return null
+  const containerRef = useRef(null)
+  const key = JSON.stringify((rows || []).map((r) => [r?.date, r?.close]))
 
-  const W = 960
-  const H = height
-  const padL = 58
-  const padR = 14
-  const padT = 14
-  const padB = 26
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
 
-  const vals = pts.map((r) => Number(r.close))
-  let min = Math.min(...vals)
-  let max = Math.max(...vals)
-  const span = max - min || Math.abs(max) * 0.02 || 1
-  min -= span * 0.08
-  max += span * 0.08
-  const rng = max - min || 1
+    const H = height || 260
 
-  const x = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR)
-  const y = (v) => padT + (1 - (v - min) / rng) * (H - padT - padB)
-  const up = vals[vals.length - 1] >= vals[0]
-  const col = up ? 'var(--up)' : 'var(--down)'
-  const gid = `pc-${pts.length}-${Math.round(min * 100)}-${Math.round(max * 100)}`
+    const chart = createChart(container, {
+      width: container.clientWidth || 640,
+      height: H,
+      layout: {
+        background: { type: 'Solid', color: '#030D1E' },
+        textColor: '#8CA6D9',
+        fontSize: 10,
+        fontFamily: 'DM Mono, monospace',
+      },
+      grid: {
+        vertLines: { color: 'rgba(42, 58, 82, 0.5)', style: 1 },
+        horzLines: { color: 'rgba(42, 58, 82, 0.5)', style: 1 },
+      },
+      crosshair: {
+        mode: 'magnet',
+        vertLine: { color: '#22E3D5', labelBackgroundColor: '#1A2638' },
+        horzLine: { color: '#22E3D5', labelBackgroundColor: '#1A2638' },
+      },
+      rightPriceScale: { borderColor: '#2A3A52' },
+      timeScale: { borderColor: '#2A3A52', timeVisible: true },
+    })
 
-  const line = pts.map((r, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${y(Number(r.close)).toFixed(1)}`).join(' ')
+    const series = chart.addSeries(LineSeries, {
+      color: '#22E3D5',
+      lineWidth: 2,
+      lastValueVisible: true,
+      priceLineVisible: false,
+    })
 
-  const fmtAxis = (v) => (v >= 1000 ? Math.round(v).toLocaleString('en-US') : v >= 10 ? v.toFixed(1) : v.toFixed(2))
-  const asDate = (v) => {
-    if (v == null) return null
-    let d
-    if (typeof v === 'number') d = new Date(v < 1e12 ? v * 1000 : v)
-    else d = new Date(String(v).length === 10 ? `${v}T00:00:00` : String(v))
-    return Number.isNaN(d.getTime()) ? null : d
-  }
-  const firstD = asDate(pts[0].date)
-  const lastD = asDate(pts[pts.length - 1].date)
-  const spanDays = firstD && lastD ? Math.abs(lastD - firstD) / 86400000 : 0
-  const longRange = spanDays > 300
-  const fmtDate = (v) => {
-    const d = asDate(v)
-    if (!d) return String(v ?? '')
-    return longRange
-      ? d.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })
-      : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-  }
+    const data = (rows || [])
+      .filter((r) => r && r.close != null)
+      .map((r) => {
+        let d
+        const raw = r.date
+        if (raw instanceof Date) d = raw
+        else if (typeof raw === 'number') d = new Date(raw < 1e12 ? raw * 1000 : raw)
+        else d = new Date(String(raw).length === 10 ? `${raw}T00:00:00` : String(raw))
+        const t = Math.floor(d.getTime() / 1000)
+        if (Number.isNaN(t)) return null
+        return { time: t, value: Number(r.close) }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.time - b.time)
 
-  const yTicks = Array.from({ length: 5 }, (_, i) => min + (rng * i) / 4)
-  const xIdx = [0, Math.round((pts.length - 1) / 3), Math.round(((pts.length - 1) * 2) / 3), pts.length - 1]
-  const last = vals[vals.length - 1]
+    series.setData(data)
 
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', width: '100%', height: 'auto' }}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={col} stopOpacity="0.22" />
-          <stop offset="100%" stopColor={col} stopOpacity="0" />
-        </linearGradient>
-      </defs>
+    const ro = new ResizeObserver(() => {
+      chart.resize(container.clientWidth, H)
+    })
+    ro.observe(container)
 
-      {yTicks.map((v, i) => (
-        <g key={i}>
-          <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} stroke="var(--border)" strokeDasharray="3 4" strokeWidth="1" opacity="0.75" />
-          <text x={padL - 8} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--text3)" fontFamily="var(--font-mono)">{fmtAxis(v)}</text>
-        </g>
-      ))}
+    return () => {
+      ro.disconnect()
+      chart.remove()
+    }
+  }, [key, height])
 
-      <polygon points={`${padL},${H - padB} ${pts.map((r, i) => `${x(i).toFixed(1)},${y(Number(r.close)).toFixed(1)}`).join(' ')} ${W - padR},${H - padB}`} fill={`url(#${gid})`} />
-      <path d={line} fill="none" stroke={col} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-
-      <line x1={padL} x2={W - padR} y1={y(last)} y2={y(last)} stroke={col} strokeDasharray="2 5" strokeWidth="1" opacity="0.45" />
-      <circle cx={x(pts.length - 1)} cy={y(last)} r="3.5" fill={col} stroke="var(--bg2)" strokeWidth="1.5" />
-
-      {[...new Set(xIdx)].map((i) => (
-        <text
-          key={i}
-          x={x(i)}
-          y={H - 6}
-          textAnchor={i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle'}
-          fontSize="10"
-          fill="var(--text3)"
-          fontFamily="var(--font-mono)"
-        >
-          {fmtDate(pts[i].date)}
-        </text>
-      ))}
-    </svg>
-  )
+  return <div ref={containerRef} style={{ width: '100%', height: height || 260, minHeight: 120 }} />
 }
 
 export function cap(n) {

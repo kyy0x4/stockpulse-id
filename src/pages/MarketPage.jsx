@@ -83,7 +83,7 @@ export default function MarketPage({ onSelectStock, stocks = [] }) {
         ))}
       </div>
 
-      <div className="dash-grid" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.9fr) minmax(0, 1fr)', marginBottom: 16 }}>
+      <div className="dash-grid" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 2.5fr) minmax(0, 1fr)', marginBottom: 16 }}>
         <div className="cg-card">
           <div className="cg-card-head">
             <Activity size={16} style={{ color: 'var(--accent)' }} />
@@ -97,7 +97,7 @@ export default function MarketPage({ onSelectStock, stocks = [] }) {
           </div>
           <div style={{ padding: '10px 16px 16px' }}>
             {indexHistory.length >= 2 ? (
-              <PriceChart rows={indexHistory} height={300} />
+              <PriceChart rows={indexHistory} height={400} />
             ) : (
               <div className="empty-state">— memuat data indeks —</div>
             )}

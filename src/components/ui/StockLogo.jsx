@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getCachedLogoUrl, rememberLogo, forgetLogo } from '../../lib/logoCache'
 
 const palettes = [
   { from: '#059669', to: '#34d399' },
@@ -38,23 +39,45 @@ export default function StockLogo({ ticker, name, logoUrl, logoFallback, size = 
   const label = name ? `${name} (${ticker})` : ticker
   const box = `${sizes[size] || sizes.md} ${className}`
 
+  // 1. Cek cache dulu — kalau ada, pakai URL cache, jangan fetch lagi
   const [failed, setFailed] = useState(0)
+  const [url, setUrl] = useState(() => {
+    // Cek cache berdasarkan ticker (prioritas)
+    const cached = getCachedLogoUrl(ticker)
+    if (cached) return cached
+    return logoUrl
+  })
 
-  const src = failed === 0 ? logoUrl : logoFallback
+  // Update saat logoUrl berganti
+  useEffect(() => {
+    if (logoUrl) {
+      const cached = getCachedLogoUrl(ticker)
+      setUrl(cached || logoUrl)
+    } else {
+      setUrl(null)
+    }
+  }, [logoUrl, ticker])
+
   const hasFallback = Boolean(logoFallback)
   const keepTrying = failed === 0 || (hasFallback && failed === 1)
 
-  if (src && keepTrying) {
+  if (url && keepTrying) {
     return (
       <div className={`flex shrink-0 items-center justify-center bg-white ${box}`}>
         <img
           key={failed === 0 ? 'primary' : 'fallback'}
-          src={src}
+          src={url}
           alt={label}
           title={label}
           loading="lazy"
           draggable={false}
-          onError={() => setFailed((f) => f + 1)}
+          onLoad={() => {
+            if (url && ticker) rememberLogo(ticker, url, true)
+          }}
+          onError={() => {
+            if (url && ticker) forgetLogo(ticker)
+            setFailed((f) => f + 1)
+          }}
           className="h-[62%] w-[62%] object-contain"
         />
       </div>
