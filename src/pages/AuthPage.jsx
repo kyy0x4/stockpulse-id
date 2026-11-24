@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { motion } from 'framer-motion'
 import { Mail, Lock, User, ShieldCheck, ArrowRight, Loader2, Info, TrendingUp, Globe, Users, BarChart3, Activity } from 'lucide-react'
 import brandLogo from '../images/Logo MarketIQ Biru-Toska.png'
-import BackgroundChart from '../components/BackgroundChart'
+import BackgroundGlow from '../components/BackgroundGlow'
 
 const FEATURES = [
   { icon: TrendingUp, label: '88+ Aset', sub: 'Saham AS, ETF & Kripto' },
@@ -101,21 +101,15 @@ export default function AuthPage() {
       minHeight: '100vh', display: 'flex', background: 'var(--bg)',
       position: 'relative', overflow: 'hidden'
     }}>
-      {/* Left side: trading chart animated background (Desktop only) */}
+      {/* Left side: dark navy + glow effect (Desktop only) */}
       <div className="hidden lg:flex" style={{
         flex: '0 0 55%', position: 'relative', zIndex: 0,
-        background: 'linear-gradient(135deg, #030D1E 0%, #0a1628 40%, #0F1E35 100%)',
+        background: '#030D1E',
         overflow: 'hidden'
       }}>
-        <BackgroundChart height={700} />
-        {/* Overlay gradient for readability */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(90deg, rgba(3,13,30,0.9) 0%, rgba(3,13,30,0.6) 60%, transparent 100%)',
-          pointerEvents: 'none'
-        }} />
-        {/* Content on top of chart */}
-        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 100px' }}>
+        <BackgroundGlow height={700} />
+        {/* Content on top */}
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 100px' }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             style={{ marginBottom: 50 }}
