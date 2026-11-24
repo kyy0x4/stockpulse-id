@@ -8,8 +8,8 @@ from app.routers.account import router as account_router
 from app.routers.macro import router as macro_router
 
 app = FastAPI(
-    title="PulseTerminal API",
-    description="Analisa saham AS & kripto spot + berita global & data makro",
+    title="MARKETIQ API",
+    description="Analisa saham AS, ETF & kripto spot + berita global & data makro",
     version="0.2.0",
 )
 
@@ -29,4 +29,4 @@ app.include_router(macro_router)
 
 @app.get("/")
 def root():
-    return {"name": "PulseTerminal API", "docs": "/docs"}
+    return {"name": "MARKETIQ API", "docs": "/docs"}

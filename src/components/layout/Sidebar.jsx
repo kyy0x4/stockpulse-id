@@ -61,7 +61,7 @@ export default function Sidebar({ active, onNavigate, open = false, collapsed = 
                 <motion.img
                   key="logo"
                   src={logoUrl}
-                  alt="PulseTerminal"
+                  alt="MARKETIQ"
                   draggable={false}
                   initial={{ opacity: 0, scale: 0.82, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -1,4 +1,4 @@
-# PulseTerminal
+# MARKETIQ
 
 Terminal analisa saham AS, kripto spot, berita global, dan indikator makro AS (FRED).
 

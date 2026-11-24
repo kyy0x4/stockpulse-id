@@ -1,1 +1,1 @@
-"""PulseTerminal backend package."""
+"""MARKETIQ backend package."""

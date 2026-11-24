@@ -153,7 +153,7 @@ export default function AuthPage() {
             SAHAM AS · ETF · KRIPTO · MAKRO
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 900, letterSpacing: '0.06em', color: 'var(--text)' }}>
-            PULSETERMINAL
+            MARKET<span style={{ color: 'var(--accent)' }}>IQ</span>
           </div>
         </div>
 

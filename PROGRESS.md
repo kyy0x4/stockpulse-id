@@ -1,4 +1,4 @@
-# PROGRESS — PulseTerminal
+# PROGRESS — MARKETIQ
 
 Terakhir diperbarui: **2026-11-22**
 
@@ -9,7 +9,7 @@ mengulang konteks. Baca ini + `git status` sebelum mulai.
 
 ## 1. Ringkasan
 
-Produk di-pivot dari **PlotFinansial (saham IDX)** menjadi **PulseTerminal**:
+Produk di-pivot dari **PlotFinansial (saham IDX)** menjadi **MARKETIQ**:
 
 - Saham AS (40 ticker) + ETF (10) + kripto spot (10)
 - Indeks pasar: S&P 500, Nasdaq, Dow, BTC, ETH
@@ -148,7 +148,7 @@ Tanpa restart, login email tetap jalan, tapi Google login & harga realtime mati.
 - `backend/app/services/auth.py`
   - Fix `maybe_single()` yang mengembalikan `None` (penyebab login selalu 401/500)
   - Error DB tidak lagi disamarkan menjadi “Email atau password salah”
-  - Branding email OTP → PULSETERMINAL
+  - Branding email OTP → MARKETIQ
 - `backend/requirements.txt`: tambah `requests`
 - `.env.example`: lengkapi `SUPABASE_URL` + `SUPABASE_SERVICE_KEY`
 - `README.md`: instruksi `uvicorn --env-file .env`

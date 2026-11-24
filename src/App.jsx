@@ -189,7 +189,7 @@ function Splash() {
     <div className="fixed inset-0 grid-bg flex flex-col items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-up/20 border-t-up" />
       <div style={{ marginTop: 14, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.3em', color: 'var(--text3)' }}>
-        PULSETERMINAL
+        MARKET<span style={{ color: 'var(--accent)' }}>IQ</span>
       </div>
     </div>
   )

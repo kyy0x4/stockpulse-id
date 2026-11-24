@@ -1,4 +1,4 @@
-"""Autentikasi PulseTerminal.
+"""Autentikasi MARKETIQ.
 
 Dua alur masuk:
 1. Email + password — aktivasi lewat kode OTP 6 digit yang dikirim via Resend
@@ -27,7 +27,7 @@ URL = os.getenv("SUPABASE_URL", "").strip()
 ANON_KEY = os.getenv("SUPABASE_ANON_KEY", os.getenv("SUPABASE_SERVICE_KEY", "")).strip()
 AUTH_SECRET = os.getenv("AUTH_SECRET", "").strip()
 RESEND_KEY = os.getenv("RESEND_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", "PulseTerminal <noreply@plotfinansial.com>").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "MARKETIQ <noreply@marketiq.app>").strip()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 hari
@@ -143,7 +143,7 @@ def _get_profile_by_email(email: str):
 # --------------------------------------------------------------------------- #
 def build_verification_email(name: str, code: str):
     first = name.strip().split(" ")[0] if name and name.strip() else "Trader"
-    app_name = "PULSETERMINAL"
+    app_name = "MARKETIQ"
     return f"""<!doctype html>
 <html lang="id">
   <head>
@@ -204,7 +204,7 @@ def send_verification_email(to: str, name: str, code: str) -> bool:
             json={
                 "from": EMAIL_FROM,
                 "to": [to],
-                "subject": f"[{code}] Kode verifikasi PulseTerminal",
+                "subject": f"[{code}] Kode verifikasi MARKETIQ",
                 "html": build_verification_email(name, code),
             },
             timeout=15,
