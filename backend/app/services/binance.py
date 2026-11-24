@@ -31,8 +31,7 @@ _session = requests.Session()
 _session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2, pool_maxsize=24))
 _lock = threading.Lock()
 
-# Ticker internal → simbol Binance. 10 kripto di CRYPTO_TICKERS semua
-# ber-quote USDT di Binance; kalau ada yang tidak, fallback USD, USDC.
+# Ticker internal → simbol Binance. Default quote USDT; override via CRYPTO[t]["binance"].
 _BINANCE_PAIRS = {}
 for _t in CRYPTO_TICKERS:
     _meta = NEW_ASSETS.get(_t, {})
@@ -40,17 +39,11 @@ for _t in CRYPTO_TICKERS:
     _BINANCE_PAIRS[_t] = f"{_t.upper()}{_pair}"
 
 # Ticker → id CoinGecko (untuk market cap, gratis tanpa API key)
+# Dibaca langsung dari CRYPTO dict biar auto-scale kalau tambah koin.
 _COINGECKO_IDS = {
-    "BTC": "bitcoin",
-    "ETH": "ethereum",
-    "SOL": "solana",
-    "XRP": "ripple",
-    "ADA": "cardano",
-    "DOGE": "dogecoin",
-    "AVAX": "avalanche-2",
-    "LINK": "chainlink",
-    "DOT": "polkadot",
-    "LTC": "litecoin",
+    _t: _m.get("cg_id")
+    for _t, _m in NEW_ASSETS.items()
+    if _m.get("kind") == "crypto" and _m.get("cg_id")
 }
 
 
@@ -74,7 +67,8 @@ def binance_market_caps(ttl=3600):
     if cached is not None:
         return cached
     try:
-        ids = ",".join(_COINGECKO_IDS.values())
+        # CoinGecko free limit: ~100 ids/request — ambil semua (40 aman)
+        ids = ",".join(v for v in _COINGECKO_IDS.values() if v)
         r = _session.get(
             f"{COINGECKO_BASE}/api/v3/simple/price",
             params={"ids": ids, "vs_currencies": "usd", "include_market_cap": "true", "include_24hr_vol": "true"},

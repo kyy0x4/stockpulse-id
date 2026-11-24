@@ -71,18 +71,48 @@ ETFS = {
     "XLK": {"name": "Technology Select Sector SPDR Fund"},
 }
 
-# Kripto spot (Yahoo Finance memakai ticker-USD, mis. BTC-USD)
+# Kripto spot — 30 aset terbesar via Binance API (spot USDT)
+# `binance`: quote currency default USDT. 10 pertama di-include di MARKET_ASSETS.
 CRYPTO = {
-    "BTC": {"name": "Bitcoin", "yf": "BTC-USD"},
-    "ETH": {"name": "Ethereum", "yf": "ETH-USD"},
-    "SOL": {"name": "Solana", "yf": "SOL-USD"},
-    "XRP": {"name": "XRP", "yf": "XRP-USD"},
-    "ADA": {"name": "Cardano", "yf": "ADA-USD"},
-    "DOGE": {"name": "Dogecoin", "yf": "DOGE-USD"},
-    "AVAX": {"name": "Avalanche", "yf": "AVAX-USD"},
-    "LINK": {"name": "Chainlink", "yf": "LINK-USD"},
-    "DOT": {"name": "Polkadot", "yf": "DOT-USD"},
-    "LTC": {"name": "Litecoin", "yf": "LTC-USD"},
+    "BTC": {"name": "Bitcoin", "yf": "BTC-USD", "binance": "USDT", "cg_id": "bitcoin"},
+    "ETH": {"name": "Ethereum", "yf": "ETH-USD", "binance": "USDT", "cg_id": "ethereum"},
+    "USDT": {"name": "Tether USD", "yf": "USDT-USD", "binance": "USDC", "cg_id": "tether"},
+    "BNB": {"name": "BNB", "yf": None, "binance": "USDT", "cg_id": "binancecoin"},
+    "XRP": {"name": "XRP", "yf": "XRP-USD", "binance": "USDT", "cg_id": "ripple"},
+    "SOL": {"name": "Solana", "yf": "SOL-USD", "binance": "USDT", "cg_id": "solana"},
+    "USDC": {"name": "USD Coin", "yf": "USDC-USD", "binance": "USDT", "cg_id": "usd-coin"},
+    "TRX": {"name": "TRON", "yf": "TRX-USD", "binance": "USDT", "cg_id": "tron"},
+    "DOGE": {"name": "Dogecoin", "yf": "DOGE-USD", "binance": "USDT", "cg_id": "dogecoin"},
+    "ADA": {"name": "Cardano", "yf": "ADA-USD", "binance": "USDT", "cg_id": "cardano"},
+    "TON": {"name": "Toncoin", "yf": None, "binance": "USDT", "cg_id": "the-open-network"},
+    "LINK": {"name": "Chainlink", "yf": "LINK-USD", "binance": "USDT", "cg_id": "chainlink"},
+    "LTC": {"name": "Litecoin", "yf": "LTC-USD", "binance": "USDT", "cg_id": "litecoin"},
+    "UNI": {"name": "Uniswap", "yf": "UNI-USD", "binance": "USDT", "cg_id": "uniswap"},
+    "XLM": {"name": "Stellar", "yf": "XLM-USD", "binance": "USDT", "cg_id": "stellar"},
+    "BCH": {"name": "Bitcoin Cash", "yf": "BCH-USD", "binance": "USDT", "cg_id": "bitcoin-cash"},
+    "XMR": {"name": "Monero", "yf": "XMR-USD", "binance": "USDT", "cg_id": "monero"},
+    "HYPE": {"name": "Hyperliquid", "yf": None, "binance": "USDT", "cg_id": "hyperliquid"},
+    "NEAR": {"name": "NEAR Protocol", "yf": "NEAR-USD", "binance": "USDT", "cg_id": "near"},
+    "ICP": {"name": "Internet Computer", "yf": "ICP-USD", "binance": "USDT", "cg_id": "internet-computer"},
+    "ETC": {"name": "Ether Classic", "yf": "ETC-USD", "binance": "USDT", "cg_id": "ethereum-classic"},
+    "POL": {"name": "Polygon", "yf": "POL-USD", "binance": "USDT", "cg_id": "polygon-ecosystem-token"},
+    "APT": {"name": "Aptos", "yf": "APT-USD", "binance": "USDT", "cg_id": "aptos"},
+    "ARB": {"name": "Arbitrum", "yf": "ARB-USD", "binance": "USDT", "cg_id": "arbitrum"},
+    "FIL": {"name": "Filecoin", "yf": "FIL-USD", "binance": "USDT", "cg_id": "filecoin"},
+    "ATOM": {"name": "Cosmos", "yf": "ATOM-USD", "binance": "USDT", "cg_id": "cosmos"},
+    "AVAX": {"name": "Avalanche", "yf": "AVAX-USD", "binance": "USDT", "cg_id": "avalanche-2"},
+    "JUP": {"name": "Jupiter", "yf": None, "binance": "USDT", "cg_id": "jupiter"},
+    "SHIB": {"name": "Shiba Inu", "yf": "SHIB-USD", "binance": "USDT", "cg_id": "shiba-inu"},
+    "INJ": {"name": "Injective", "yf": "INJ-USD", "binance": "USDT", "cg_id": "injective"},
+    "DOT": {"name": "Polkadot", "yf": "DOT-USD", "binance": "USDT", "cg_id": "polkadot"},
+    "OP": {"name": "Optimism", "yf": "OP-USD", "binance": "USDT", "cg_id": "optimism"},
+    "GALA": {"name": "Gala", "yf": "GALA-USD", "binance": "USDT", "cg_id": "gala"},
+    "WIF": {"name": "dogwifhat", "yf": None, "binance": "USDT", "cg_id": "dogwifhat"},
+    "SEI": {"name": "Sei", "yf": "SEI-USD", "binance": "USDT", "cg_id": "sei-v2"},
+    "AAVE": {"name": "Aave", "yf": "AAVE-USD", "binance": "USDT", "cg_id": "aave"},
+    "SUI": {"name": "Sui", "yf": "SUI-USD", "binance": "USDT", "cg_id": "sui"},
+    "SAND": {"name": "The Sandbox", "yf": "SAND-USD", "binance": "USDT", "cg_id": "the-sandbox"},
+    "STX": {"name": "Stacks", "yf": "STX-USD", "binance": "USDT", "cg_id": "stacks-2"},
 }
 
 CRYPTO_TICKERS = sorted(CRYPTO)
@@ -96,7 +126,8 @@ MARKET_ASSETS = [
     {"ticker": "ETH", "yf": "ETH-USD", "name": "Ethereum", "kind": "crypto"},
 ]
 
-# Gabungan universe baru untuk screener: saham AS + ETF + kripto spot
+# Kripto untuk screener (40 dari 40 — semua CRYPTO)
+# Gabungan universe baru untuk screener: saham AS (40) + ETF (10) + kripto (40)
 NEW_ASSET_TICKERS = sorted(
     set(US_STOCKS.keys())
     | set(ETFS.keys())
