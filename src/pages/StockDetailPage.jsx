@@ -189,6 +189,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
             ) : (
               <Spark data={s.sparkline} up={trendPositive} w={800} h={200} fluid />
             )}
+          </div>
 
           <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             <div>
