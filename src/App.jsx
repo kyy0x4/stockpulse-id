@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams } fro
 import { motion, AnimatePresence } from 'framer-motion'
 import TopNav from './components/layout/TopNav'
 import TickerTape from './components/layout/TickerTape'
+import Footer from './components/layout/Footer'
 import StockDetailPage from './pages/StockDetailPage'
 import AuthPage from './pages/AuthPage'
 import { AuthProvider, useAuth } from './auth/AuthContext'
@@ -21,6 +22,7 @@ const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
 const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'))
 const MacroPage = lazy(() => import('./pages/MacroPage'))
+const StaticPage = lazy(() => import('./pages/StaticPage'))
 
 function PageWrapper({ children }) {
   return (
@@ -156,6 +158,11 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
                   <Route path="/market-pulse" element={<MarketPulsePage stocks={data} theme={theme} />} />
                   <Route path="/news-impact" element={<NewsImpactPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
                   <Route path="/portfolio" element={<PortfolioPage stocks={data} onSelectStock={openDetail} />} />
+                  <Route path="/about" element={<StaticPage slug="about" />} />
+                  <Route path="/contact" element={<StaticPage slug="contact" />} />
+                  <Route path="/disclaimer" element={<StaticPage slug="disclaimer" />} />
+                  <Route path="/terms" element={<StaticPage slug="terms" />} />
+                  <Route path="/privacy" element={<StaticPage slug="privacy" />} />
                   <Route path="/stock/:ticker" element={<StockDetailRoute stocks={data} favorites={favorites} onToggleFav={toggleFav} theme={theme} />} />
                   <Route path="*" element={<DashboardPage
                     stocks={data}
@@ -171,6 +178,8 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
           </AnimatePresence>
         </div>
       </main>
+
+      <Footer />
     </div>
   )
 }
