@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { motion } from 'framer-motion'
 import { Mail, Lock, User, ShieldCheck, ArrowRight, Loader2, Info, TrendingUp, Globe, Users, BarChart3, Activity } from 'lucide-react'
 import brandLogo from '../images/Logo MarketIQ Biru-Toska.png'
+import BackgroundChart from '../components/BackgroundChart'
 
 const FEATURES = [
   { icon: TrendingUp, label: '88+ Aset', sub: 'Saham AS, ETF & Kripto' },
@@ -100,91 +101,90 @@ export default function AuthPage() {
       minHeight: '100vh', display: 'flex', background: 'var(--bg)',
       position: 'relative', overflow: 'hidden'
     }}>
-      {/* Decorative gradient orbs */}
-      <div className="grid-bg" style={{ opacity: 0.08 }} />
-      <div style={{
-        position: 'absolute', top: '-20%', right: '-10%', width: '50vw', height: '50vw',
-        background: 'radial-gradient(circle, rgba(34, 227, 213, 0.08) 0%, transparent 60%)',
-        zIndex: 0, pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '-20%', left: '-10%', width: '40vw', height: '40vw',
-        background: 'radial-gradient(circle, rgba(13, 196, 233, 0.06) 0%, transparent 60%)',
-        zIndex: 0, pointerEvents: 'none'
-      }} />
-
-      {/* Left side: branding & benefits (Desktop only) */}
+      {/* Left side: trading chart animated background (Desktop only) */}
       <div className="hidden lg:flex" style={{
-        flex: '0 0 55%', flexDirection: 'column', justifyContent: 'center', padding: '0 100px',
-        borderRight: '1px solid var(--border)', zIndex: 1, position: 'relative',
-        background: 'linear-gradient(180deg, rgba(3,13,30,0) 0%, rgba(26,38,56,0.3) 100%)'
+        flex: '0 0 55%', position: 'relative', zIndex: 0,
+        background: 'linear-gradient(135deg, #030D1E 0%, #0a1628 40%, #0F1E35 100%)',
+        overflow: 'hidden'
       }}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          style={{ marginBottom: 50 }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-            <img src={brandLogo} alt="MARKETIQ" style={{ height: 44, width: 'auto' }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 900, color: 'var(--text)', letterSpacing: -1 }}>
-              MARKET<span style={{ color: 'var(--accent)' }}>IQ</span>
-            </span>
-          </div>
+        <BackgroundChart height={700} />
+        {/* Overlay gradient for readability */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: 'linear-gradient(90deg, rgba(3,13,30,0.9) 0%, rgba(3,13,30,0.6) 60%, transparent 100%)',
+          pointerEvents: 'none'
+        }} />
+        {/* Content on top of chart */}
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 100px' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            style={{ marginBottom: 50 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <img src={brandLogo} alt="MARKETIQ" style={{ height: 44, width: 'auto' }} />
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 900, color: 'var(--text)', letterSpacing: -1 }}>
+                MARKET<span style={{ color: 'var(--accent)' }}>IQ</span>
+              </span>
+            </div>
 
-          <h1 style={{ fontSize: 48, fontWeight: 900, color: 'var(--text)', lineHeight: 1.1, marginBottom: 24 }}>
-            Trading Tanpa<br /><span style={{ color: 'var(--accent)' }}>Batas</span>.
-          </h1>
+            <h1 style={{ fontSize: 48, fontWeight: 900, color: '#F3F5F9', lineHeight: 1.1, marginBottom: 24 }}>
+              Trading Tanpa<br /><span style={{ color: 'var(--accent)' }}>Batas</span>.
+            </h1>
 
-          <p style={{ fontSize: 17, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 480, marginBottom: 48 }}>
-            Platform analisis pasar saham AS, ETF, & kripto paling lengkap. 
-            Data real-time, sinyal otomatis, dan berita global — satu terminal untuk semua.
-          </p>
+            <p style={{ fontSize: 17, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 480, marginBottom: 48 }}>
+              Platform analisis pasar saham AS, ETF, & kripto paling lengkap. 
+              Data real-time, sinyal otomatis, dan berita global — satu terminal untuk semua.
+            </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                style={{
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
-                  borderRadius: 12, padding: '14px 16px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <f.icon size={18} style={{ color: 'var(--accent)' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{f.label}</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text3)', paddingLeft: 28 }}>{f.sub}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 50, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ display: 'flex' }}>
-              {[1,2,3,4].map(i => (
-                <div key={i} style={{
-                  width: 36, height: 36, borderRadius: '50%', background: `hsl(${i * 60}, 70%, 55%)`,
-                  border: '2px solid var(--bg)', marginLeft: i > 1 ? -10 : 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, color: '#fff'
-                }}>
-                  {String.fromCharCode(64 + i)}
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              {FEATURES.map((f, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(42,58,82,0.6)',
+                    borderRadius: 12, padding: '14px 16px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <f.icon size={18} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#F3F5F9' }}>{f.label}</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)', paddingLeft: 28 }}>{f.sub}</div>
+                </motion.div>
               ))}
             </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>1,200+ Trader Aktif</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)' }}>bergabung bulan ini</div>
+
+            <div style={{ marginTop: 50, display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ display: 'flex' }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: `hsl(${i * 60}, 70%, 55%)`,
+                    border: '2px solid #030D1E', marginLeft: i > 1 ? -10 : 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 700, color: '#fff'
+                  }}>
+                    {String.fromCharCode(64 + i)}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#F3F5F9' }}>1,200+ Trader Aktif</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)' }}>bergabung bulan ini</div>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Right side: Auth Form */}
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '40px 24px', zIndex: 1, position: 'relative'
+        padding: '40px 24px', zIndex: 1, position: 'relative',
+        background: 'linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%)'
       }}>
         <div style={{ width: '100%', maxWidth: 440 }}>
           {/* Mobile brand header */}
