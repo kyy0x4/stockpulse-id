@@ -8,16 +8,44 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [initializing, setInitializing] = useState(true)
 
-  const hydrateFromGoogle = useCallback(async () => {
+  const hydrateFromGoogle = useCallback(async (skipIfNoSession = true) => {
     if (!supabase) return null
     const { data } = await supabase.auth.getSession()
     const token = data?.session?.access_token
-    if (!token) return null
+    if (!token) {
+      if (skipIfNoSession) return null
+      // Force wait for auth callback when coming back from Google
+      const code = new URLSearchParams(window.location.search).get('code')
+      if (!code) return null
+      // Wait up to 10s for Supabase to process the PKCE callback
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 500))
+        const { data: fresh } = await supabase.auth.getSession()
+        const freshToken = fresh?.session?.access_token
+        if (freshToken) {
+          try {
+            const res = await authApi.google(freshToken)
+            await supabase.auth.signOut().catch(() => {})
+            setToken(res.token)
+            setUser(res.user)
+            window.history.replaceState({}, '', '/')
+            return res.user
+          } catch (err) {
+            console.warn('Google login gagal:', err.message)
+            await supabase.auth.signOut().catch(() => {})
+            return null
+          }
+        }
+      }
+      window.history.replaceState({}, '', '/')
+      return null
+    }
     try {
       const res = await authApi.google(token)
-      await supabase.auth.signOut()
+      await supabase.auth.signOut().catch(() => {})
       setToken(res.token)
       setUser(res.user)
+      window.history.replaceState({}, '', '/')
       return res.user
     } catch (err) {
       console.warn('Google login gagal:', err.message)
@@ -28,25 +56,40 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     ;(async () => {
+      // Detect if we're coming back from Google OAuth (PKCE code in URL)
+      const params = new URLSearchParams(window.location.search)
+      const hasOAuthCode = params.get('code') !== null
+      const hasGoogleFlag = params.get('google') === '1'
+
       const t = getToken()
       if (t) {
         try {
           const res = await authApi.me(t)
           setUser(res.user)
+          if (hasOAuthCode || hasGoogleFlag) {
+            window.history.replaceState({}, '', '/')
+          }
+          setInitializing(false)
+          return
         } catch (err) {
           if (err?.status === 401) setToken('')
         }
       }
-      if (!getToken()) {
-        await hydrateFromGoogle()
+
+      // If no local token, try Supabase session (Google OAuth or PKCE)
+      const hydrated = await hydrateFromGoogle(hasOAuthCode ? false : true)
+      if (hydrated) {
+        setInitializing(false)
+        return
       }
+
       setInitializing(false)
     })()
 
     if (supabase) {
       const { data: sub } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_IN' && !getToken()) {
-          hydrateFromGoogle()
+          hydrateFromGoogle(false)
         }
       })
       return () => sub?.subscription.unsubscribe()
