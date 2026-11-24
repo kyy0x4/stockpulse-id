@@ -22,6 +22,7 @@ const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
 const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'))
 const MacroPage = lazy(() => import('./pages/MacroPage'))
+const StaticPage = lazy(() => import('./pages/StaticPage'))
 const AlertsPage = lazy(() => import('./pages/AlertsPage'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 
