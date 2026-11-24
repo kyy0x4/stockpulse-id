@@ -17,6 +17,7 @@ from app.data.tickers import (
     LOGO_OVERRIDES,
 )
 from app.services.cache import get as cache_get, set as cache_set
+from app.services.binance import binance_24h, binance_history, binance_market_caps, _binance_limit
 
 warnings.filterwarnings("ignore")
 
@@ -67,55 +68,63 @@ def domain_from_website(url):
 
 
 def fetch_batch_histories(tickers=None, period="6mo", interval="1d", ttl=600):
-    """Download price history for many tickers in a single request.
-
-    Hasil di-cache selama `ttl` (default 10 mnt) — harga pasar cepat berubah,
-    tapi untuk screener snapshot 10 menit sudah cukup dan mencegah re-download
-    240 ticker saat /warm & /stocks dipanggil beruntun.
-    """
+    """Batch history: Kripto via Binance, lainnya via Yahoo Finance."""
     codes = list(tickers or ALL_TICKERS)
-    sig = hashlib.md5(",".join(sorted(codes)).encode()).hexdigest()[:10]
-    key = f"bh:{period}:{interval}:{sig}"
-    cached = cache_get(key)
-    if cached is not None:
-        # kembalikan subset; semua kode dimuat sekali, kode baru = cache miss
-        return {c: cached[c] for c in codes if c in cached}
-
-    t0 = time.time()
-    yahoo = [yf_symbol(t) for t in codes]
-    frames = yf.download(tickers=yahoo, period=period, interval=interval, auto_adjust=True, actions=False, group_by="ticker", threads=True)
-    multi = isinstance(frames.columns, pd.MultiIndex)
+    
+    # 1. Split tickers
+    crypto_tickers = [c for c in codes if asset_kind(c) == "crypto"]
+    stock_tickers = [c for c in codes if asset_kind(c) != "crypto"]
+    
     out = {}
-    for code in codes:
-        key_t = yf_symbol(code)
-        try:
-            if multi:
-                if key_t not in frames.columns.get_level_values(0):
+    
+    # 2. Fetch Kripto (Binance)
+    for c in crypto_tickers:
+        limit = _binance_limit(period, interval)
+        hist = binance_history(c, interval=interval, limit=limit)
+        if hist:
+            out[c] = hist
+            
+    # 3. Fetch Saham/ETF (Yahoo Finance)
+    if stock_tickers:
+        sig = hashlib.md5(",".join(sorted(stock_tickers)).encode()).hexdigest()[:10]
+        key = f"bh:{period}:{interval}:{sig}"
+        cached = cache_get(key)
+        if cached is not None:
+            for c in stock_tickers:
+                if c in cached: out[c] = cached[c]
+        else:
+            t0 = time.time()
+            yahoo = [yf_symbol(t) for t in stock_tickers]
+            frames = yf.download(tickers=yahoo, period=period, interval=interval, auto_adjust=True, actions=False, group_by="ticker", threads=True, progress=False)
+            multi = isinstance(frames.columns, pd.MultiIndex)
+            
+            stock_results = {}
+            for code in stock_tickers:
+                key_t = yf_symbol(code)
+                try:
+                    df = frames[key_t] if multi else frames
+                    df = df.dropna(how="all")
+                    if df.empty: continue
+                    df = df.reset_index()
+                    rows = [
+                        {
+                            "date": row["Date"].strftime("%Y-%m-%d") if isinstance(row["Date"], pd.Timestamp) else str(row["Date"]),
+                            "open": _clean(row.get("Open")),
+                            "high": _clean(row.get("High")),
+                            "low": _clean(row.get("Low")),
+                            "close": _clean(row.get("Close")),
+                            "volume": _clean(row.get("Volume")),
+                        }
+                        for _, row in df.iterrows()
+                        if _clean(row.get("Close")) is not None
+                    ]
+                    stock_results[code] = rows
+                    out[code] = rows
+                except Exception:
                     continue
-                df = frames[key_t]
-            else:
-                df = frames
-            df = df.dropna(how="all")
-            if df.empty:
-                continue
-            df = df.reset_index()
-            rows = [
-                {
-                    "date": row["Date"].strftime("%Y-%m-%d") if isinstance(row["Date"], pd.Timestamp) else str(row["Date"]),
-                    "open": _clean(row.get("Open")),
-                    "high": _clean(row.get("High")),
-                    "low": _clean(row.get("Low")),
-                    "close": _clean(row.get("Close")),
-                    "volume": _clean(row.get("Volume")),
-                }
-                for _, row in df.iterrows()
-                if _clean(row.get("Close")) is not None
-            ]
-            out[code] = rows
-        except Exception:
-            continue
-    if out:
-        cache_set(key, out, ttl=ttl)
+            if stock_results:
+                cache_set(key, stock_results, ttl=ttl)
+                
     return out
 
 
@@ -130,6 +139,11 @@ def _clean(value):
 
 
 def fetch_history(ticker, period="6mo", interval="1d"):
+    # Kripto → Binance (lebih lengkap & real-time)
+    if asset_kind(ticker) == "crypto":
+        limit = _binance_limit(period, interval)
+        return binance_history(ticker, interval=interval, limit=limit)
+
     t = yf.Ticker(yf_symbol(ticker))
     hist = t.history(period=period, interval=interval, auto_adjust=True, actions=False)
     hist = hist.reset_index()
@@ -151,9 +165,35 @@ def fetch_history(ticker, period="6mo", interval="1d"):
 
 def fetch_market_index(code="SPX", period="1y", interval="1d"):
     """Fetch indeks / aset pasar (S&P 500, Nasdaq, Dow, BTC, ETH)."""
-    asset = next((a for a in MARKET_ASSETS if a["ticker"] == (code or "").upper()), None)
+    t_upper = (code or "").upper()
+    asset = next((a for a in MARKET_ASSETS if a["ticker"] == t_upper), None)
+    
+    # Kripto → Binance
+    if asset and asset.get("kind") == "crypto":
+        limit = _binance_limit(period, interval)
+        rows = binance_history(t_upper, interval=interval, limit=limit)
+        if not rows:
+            return None
+        last = rows[-1]
+        first = rows[0]
+        prev = rows[-2] if len(rows) > 1 else first
+        change = ((last["close"] - prev["close"]) / prev["close"] * 100) if prev["close"] else 0
+        ytd = ((last["close"] - first["close"]) / first["close"] * 100) if first["close"] else 0
+        return {
+            "name": asset["name"],
+            "code": t_upper,
+            "yf": asset["yf"], # Simpan yf alias untuk kompatibilitas UI jika perlu
+            "kind": "crypto",
+            "price": last["close"],
+            "change": round(change, 2),
+            "ytd": round(ytd, 2),
+            "last_updated": last["date"],
+            "history": rows,
+        }
+
+    # Indeks → Yahoo Finance (GSPC, IXIC, DJI)
     if asset is None:
-        asset = {"ticker": (code or "").upper(), "yf": yf_symbol(code), "name": (code or "").upper()}
+        asset = {"ticker": t_upper, "yf": yf_symbol(code), "name": t_upper}
     try:
         with _index_lock:
             hist = yf.download(
@@ -216,14 +256,51 @@ def fetch_info(ticker, ttl=6 * 3600):
 
     t = yf.Ticker(yf_symbol(ticker))
     info = t.info
+    kind = asset_kind(ticker)
+    meta = NEW_ASSETS.get((ticker or "").upper(), {})
+
+    # Kripto → pakai snapshot Binance (fundamental saham tidak berlaku utk kripto)
+    if kind == "crypto":
+        snap = binance_24h(ticker).get((ticker or "").upper(), {})
+        caps = binance_market_caps().get((ticker or "").upper(), {})
+        result = {
+            "name": meta.get("name") or ticker,
+            "kind": kind,
+            "sector": meta.get("sector") or "Kripto",
+            "currency": "USD",
+            "market_cap": caps.get("market_cap"),
+            "trailing_pe": None,
+            "forward_pe": None,
+            "price_to_book": None,
+            "return_on_equity": None,
+            "return_on_assets": None,
+            "debt_to_equity": None,
+            "current_ratio": None,
+            "revenue_growth": None,
+            "earnings_growth": None,
+            "dividend_yield": None,
+            "profit_margins": None,
+            "operating_margins": None,
+            "revenue": None,
+            "net_income": None,
+            "free_cashflow": None,
+            "target_mean_price": None,
+            "recommendation": None,
+            "number_of_analysts": None,
+            "last_price": snap.get("price"),
+            "change_24h": snap.get("changePct"),
+            "binance_symbol": snap.get("symbol"),
+            "audit_raw": {},
+        }
+        cache_set(key, result, ttl=ttl)
+        return result
+
     sector_raw = _clean(info.get("sector"))
     website = _clean(info.get("website"))
     domain = domain_from_website(website)
     override = LOGO_OVERRIDES.get(ticker)
     icon_horse = f"https://icon.horse/icon/{domain}" if domain else None
     google_fav = f"https://www.google.com/s2/favicons?domain={domain}&sz=128" if domain else None
-    kind = asset_kind(ticker)
-    meta = NEW_ASSETS.get((ticker or "").upper(), {})
     sector = sector_raw or meta.get("sector") or "Lainnya"
     default_currency = "USD"
     market_cap = _clean(info.get("marketCap"))
