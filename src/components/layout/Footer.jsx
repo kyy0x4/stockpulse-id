@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
   Mail, Globe, ShieldAlert, BookOpen, FileText,
-  User, MessageCircle, Scale, Bell,
+  User, MessageCircle, Scale, Bell, UserCog,
 } from 'lucide-react'
 import brandLogo from '../../images/Logo MarketIQ Biru-Toska.png'
 
@@ -14,6 +14,7 @@ const COLS = [
       { label: 'Market', to: '/market', icon: null },
       { label: 'Watchlist', to: '/watchlist', icon: null },
       { label: 'Portfolio', to: '/portfolio', icon: null },
+      { label: 'Profile', to: '/profile', icon: UserCog },
     ]
   },
   {
@@ -108,7 +109,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {col.links.map((l) => {
                 const Icon = l.icon
-                const isStatic = ['/about', '/contact', '/disclaimer', '/terms', '/privacy', '/alerts'].includes(l.to)
+                const isStatic = ['/about', '/contact', '/disclaimer', '/terms', '/privacy', '/alerts', '/profile'].includes(l.to)
                 const Comp = isStatic ? Link : 'a'
                 return (
                   <li key={l.label}>

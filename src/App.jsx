@@ -25,6 +25,7 @@ const MacroPage = lazy(() => import('./pages/MacroPage'))
 const StaticPage = lazy(() => import('./pages/StaticPage'))
 const AlertsPage = lazy(() => import('./pages/AlertsPage'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 
 function PageWrapper({ children }) {
   return (
@@ -162,6 +163,7 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
                   <Route path="/portfolio" element={<PortfolioPage stocks={data} onSelectStock={openDetail} />} />
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/about" element={<StaticPage slug="about" />} />
                   <Route path="/contact" element={<StaticPage slug="contact" />} />
                   <Route path="/disclaimer" element={<StaticPage slug="disclaimer" />} />

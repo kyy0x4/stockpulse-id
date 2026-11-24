@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Bell, Sun, Moon, Menu, X, Clock, ExternalLink, Loader2, Wifi,
   LayoutDashboard, SlidersHorizontal, Star, PieChart, LineChart, Globe,
-  Newspaper, Activity, Zap, LogOut, ChevronDown, Crown,
+  Newspaper, Activity, Zap, LogOut, ChevronDown, Crown, UserCog,
 } from 'lucide-react'
 import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
@@ -22,6 +22,7 @@ const PRIMARY_NAV = [
 ]
 
 const MORE_NAV = [
+  { id: 'profile', label: 'Profile', path: '/profile', icon: UserCog },
   { id: 'alerts', label: 'Alerts', path: '/alerts', icon: Bell },
   { id: 'pricing', label: 'Pricing', path: '/pricing', icon: Crown },
   { id: 'macro', label: 'Macro', path: '/macro', icon: Globe },
@@ -328,6 +329,13 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
                       style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', color: 'var(--text2)', fontSize: 12.5, cursor: 'pointer' }}
                     >
                       <ThemeIcon size={14} /> Ganti tema
+                    </button>
+                    <button
+                      onClick={() => { onNavigate?.('profile'); setUserOpen(false); setDrawer(false) }}
+                      className="hoverable"
+                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', color: 'var(--text2)', fontSize: 12.5, cursor: 'pointer' }}
+                    >
+                      <UserCog size={14} /> Profil & Pengaturan
                     </button>
                     <button
                       onClick={onLogout}
