@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Bell, Sun, Moon, Menu, X, Clock, ExternalLink, Loader2, Wifi,
   LayoutDashboard, SlidersHorizontal, Star, PieChart, LineChart, Globe,
-  Newspaper, Activity, Zap, LogOut, ChevronDown,
+  Newspaper, Activity, Zap, LogOut, ChevronDown, Crown,
 } from 'lucide-react'
 import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
@@ -22,6 +22,8 @@ const PRIMARY_NAV = [
 ]
 
 const MORE_NAV = [
+  { id: 'alerts', label: 'Alerts', path: '/alerts', icon: Bell },
+  { id: 'pricing', label: 'Pricing', path: '/pricing', icon: Crown },
   { id: 'macro', label: 'Macro', path: '/macro', icon: Globe },
   { id: 'news', label: 'News', path: '/news', icon: Newspaper },
   { id: 'market-pulse', label: 'Market Pulse', path: '/market-pulse', icon: Activity },

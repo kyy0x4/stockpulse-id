@@ -52,6 +52,7 @@ def _public(profile) -> dict:
         "is_verified": bool(profile.get("is_verified")),
         "avatar_url": profile.get("avatar_url"),
         "created_at": profile.get("created_at"),
+        "plan": profile.get("plan", "free"),  # free | pro | enterprise
     }
 
 

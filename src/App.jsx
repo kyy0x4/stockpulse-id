@@ -22,7 +22,8 @@ const MarketPulsePage = lazy(() => import('./pages/MarketPulsePage'))
 const NewsImpactPage = lazy(() => import('./pages/NewsImpactPage'))
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'))
 const MacroPage = lazy(() => import('./pages/MacroPage'))
-const StaticPage = lazy(() => import('./pages/StaticPage'))
+const AlertsPage = lazy(() => import('./pages/AlertsPage'))
+const PricingPage = lazy(() => import('./pages/PricingPage'))
 
 function PageWrapper({ children }) {
   return (
@@ -158,6 +159,8 @@ function Shell({ favorites, toggleFav, theme, toggleTheme, stocks, loading, usin
                   <Route path="/market-pulse" element={<MarketPulsePage stocks={data} theme={theme} />} />
                   <Route path="/news-impact" element={<NewsImpactPage onSelectStock={openDetail} stocks={data} theme={theme} />} />
                   <Route path="/portfolio" element={<PortfolioPage stocks={data} onSelectStock={openDetail} />} />
+                  <Route path="/alerts" element={<AlertsPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/about" element={<StaticPage slug="about" />} />
                   <Route path="/contact" element={<StaticPage slug="contact" />} />
                   <Route path="/disclaimer" element={<StaticPage slug="disclaimer" />} />

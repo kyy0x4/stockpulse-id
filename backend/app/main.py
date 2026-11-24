@@ -6,6 +6,7 @@ from app.routers.cron import router as cron_router
 from app.routers.auth import router as auth_router
 from app.routers.account import router as account_router
 from app.routers.macro import router as macro_router
+from app.routers.alerts import router as alerts_router
 
 app = FastAPI(
     title="MARKETIQ API",
@@ -25,6 +26,7 @@ app.include_router(cron_router)
 app.include_router(auth_router)
 app.include_router(account_router)
 app.include_router(macro_router)
+app.include_router(alerts_router)
 
 
 @app.get("/")

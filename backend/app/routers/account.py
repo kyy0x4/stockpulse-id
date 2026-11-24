@@ -11,6 +11,22 @@ from app.services import auth as a
 router = APIRouter(prefix="/api", tags=["account"])
 
 
+class PlanIn(BaseModel):
+    plan: str = Field(pattern="^(free|pro|enterprise)$")
+
+
+@router.post("/account/plan")
+def set_plan(body: PlanIn, user: dict = Depends(a.get_current_user)):
+    """Upgrade/downgrade plan (stub). Implementasi nyata pakai Stripe webhooks.
+    
+    Saat ini update field plan di profil. Setelah Stripe live, endpoint ini
+    jadi callback webhook dari Stripe.
+    """
+    a._client().table("profiles").update({"plan": body.plan}).eq("id", user["id"]).execute()
+    user["plan"] = body.plan
+    return {"ok": True, "plan": body.plan}
+
+
 class WatchIn(BaseModel):
     ticker: str = Field(min_length=1, max_length=6)
 

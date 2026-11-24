@@ -56,7 +56,16 @@ def _poll_async():
             return
         cache_set("screen:all", sanitize(results), ttl=60 * 60 * 2)
         db.upsert_quotes(results)
-        print(f"[cron] pushed {len(results)} quotes")
+        # Cek alerts yang tembus & tandai triggered
+        from app.routers import alerts as alerts_router
+        hits = alerts_router.check_alerts(results)
+        for user_id, al, quote in hits:
+            ticker = al.get("ticker")
+            msg = (f"Alert {ticker} tembus: {al.get('type')} "
+                   f"{'harga=' + str(quote.get('price')) if al.get('type').startswith('price_') else 'sinyal=' + str(quote.get('signal'))}")
+            print(f"[alerts] {user_id} <- {msg}")
+            # TODO: kirim email/push ke user_id (via Resend/Telegram)
+        print(f"[cron] pushed {len(results)} quotes, {len(hits)} alerts triggered")
     except Exception as exc:
         print(f"[cron] poll gagal: {exc}")
 

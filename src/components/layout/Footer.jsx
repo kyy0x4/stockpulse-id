@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
   Mail, Globe, ShieldAlert, BookOpen, FileText,
-  User, MessageCircle, Scale,
+  User, MessageCircle, Scale, Bell,
 } from 'lucide-react'
 import brandLogo from '../../images/Logo MarketIQ Biru-Toska.png'
 
@@ -23,6 +23,7 @@ const COLS = [
       { label: 'News', to: '/news', icon: null },
       { label: 'News Impact', to: '/news-impact', icon: null },
       { label: 'Market Pulse', to: '/market-pulse', icon: null },
+      { label: 'Alerts', to: '/alerts', icon: Bell },
       { label: 'Macro', to: '/macro', icon: null },
     ]
   },
@@ -107,7 +108,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {col.links.map((l) => {
                 const Icon = l.icon
-                const isStatic = ['/about', '/contact', '/disclaimer', '/terms', '/privacy'].includes(l.to)
+                const isStatic = ['/about', '/contact', '/disclaimer', '/terms', '/privacy', '/alerts'].includes(l.to)
                 const Comp = isStatic ? Link : 'a'
                 return (
                   <li key={l.label}>
@@ -144,6 +145,7 @@ export default function Footer() {
           © 2026 MARKETIQ. Data harga: Yahoo Finance, Binance, CoinGecko. Bukan nasihat keuangan.
         </p>
         <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text3)' }}>
+          <Link to="/alerts" style={{ textDecoration: 'none' }}>Alerts</Link>
           <Link to="/disclaimer" style={{ textDecoration: 'none' }}>Disclaimer</Link>
           <Link to="/terms" style={{ textDecoration: 'none' }}>Terms</Link>
           <Link to="/privacy" style={{ textDecoration: 'none' }}>Privacy</Link>

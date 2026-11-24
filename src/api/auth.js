@@ -61,4 +61,11 @@ export const accountApi = {
   portfolio: () => req('/portfolio'),
   trades: () => req('/portfolio/trades'),
   addTrade: (payload) => req('/portfolio/trades', { method: 'POST', body: payload }),
+  // Alerts
+  alerts: () => req('/alerts'),
+  addAlert: (payload) => req('/alerts', { method: 'POST', body: payload }),
+  removeAlert: (id) => req(`/alerts/${id}`, { method: 'DELETE' }),
+  dismissAlert: (id) => req(`/alerts/${id}/dismiss`, { method: 'POST' }),
+  // Plan
+  upgradePlan: (plan) => req('/account/plan', { method: 'POST', body: { plan } }),
 }
