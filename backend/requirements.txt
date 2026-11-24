@@ -7,3 +7,4 @@ supabase
 pyjwt
 requests
 twelvedata
+redis

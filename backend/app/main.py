@@ -7,12 +7,16 @@ from app.routers.auth import router as auth_router
 from app.routers.account import router as account_router
 from app.routers.macro import router as macro_router
 from app.routers.alerts import router as alerts_router
+from app.middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(
     title="MARKETIQ API",
     description="Analisa saham AS, ETF & kripto spot + berita global & data makro",
     version="0.2.0",
 )
+
+# Add rate limiting middleware (before CORS so it runs first)
+app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,4 +35,5 @@ app.include_router(alerts_router)
 
 @app.get("/")
 def root():
-    return {"name": "MARKETIQ API", "docs": "/docs"}
+    from app.services import cache as cache_svc
+    return {"name": "MARKETIQ API", "docs": "/docs", "cache": cache_svc.health()}
