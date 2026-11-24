@@ -17,10 +17,20 @@ const fmtNum = (v, d = 1) => (v == null || Number.isNaN(Number(v)) ? null : Numb
 
 export default function StockDetailPage({ stock, onClose, onToggleFav, favorites }) {
   const s = viewStock(stock || {})
-  const isFav = favorites.includes(s.ticker)
+  const isFav = (favorites || []).includes(s.ticker)
 
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [period, setPeriod] = useState('3mo')
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const PERIODS = [
+    { id: '1mo', label: '1M' },
+    { id: '3mo', label: '3M' },
+    { id: '6mo', label: '6M' },
+    { id: '1y', label: '12M' },
+    { id: '5y', label: '5Y' },
+  ]
 
   useEffect(() => {
     let alive = true
@@ -38,7 +48,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
     return () => { alive = false }
   }, [s.ticker])
 
-  // Simulate loading saat ganti period (bukan re-fetch)
+  // Simulate loading singkat saat ganti period (data tetap dari history)
   useEffect(() => {
     if (period !== '3mo') {
       setLoadingHistory(true)
@@ -62,16 +72,6 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
   const name = detail?.name ?? s.name
   const sector = detail?.sector ?? s.sector
   const positive = (change ?? 0) >= 0
-  const [period, setPeriod] = useState('3mo')
-  const [loadingHistory, setLoadingHistory] = useState(false)
-
-  const PERIODS = [
-    { id: '1mo', label: '1M' },
-    { id: '3mo', label: '3M' },
-    { id: '6mo', label: '6M' },
-    { id: '1y', label: '12M' },
-    { id: '5y', label: '5Y' },
-  ]
 
   const series = history.map(h => h.close).filter(n => n != null)
   const trendPositive = series.length >= 2 ? series[series.length - 1] >= series[0] : positive
