@@ -8,47 +8,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [initializing, setInitializing] = useState(true)
 
-  const hydrateFromGoogle = useCallback(async (skipIfNoSession = true) => {
+  /**
+   * Try to exchange a Supabase session token for a backend JWT.
+   * Called on app init and on SIGNED_IN event.
+   */
+  const exchangeSupabaseSession = useCallback(async () => {
     if (!supabase) return null
     const { data } = await supabase.auth.getSession()
     const token = data?.session?.access_token
-    if (!token) {
-      if (skipIfNoSession) return null
-      // Force wait for auth callback when coming back from Google
-      const code = new URLSearchParams(window.location.search).get('code')
-      if (!code) return null
-      // Wait up to 10s for Supabase to process the PKCE callback
-      for (let i = 0; i < 20; i++) {
-        await new Promise((r) => setTimeout(r, 500))
-        const { data: fresh } = await supabase.auth.getSession()
-        const freshToken = fresh?.session?.access_token
-        if (freshToken) {
-          try {
-            const res = await authApi.google(freshToken)
-            await supabase.auth.signOut().catch(() => {})
-            setToken(res.token)
-            setUser(res.user)
-            window.history.replaceState({}, '', '/')
-            return res.user
-          } catch (err) {
-            console.warn('Google login gagal:', err.message)
-            await supabase.auth.signOut().catch(() => {})
-            return null
-          }
-        }
-      }
-      window.history.replaceState({}, '', '/')
-      return null
-    }
+    if (!token) return null
+
     try {
       const res = await authApi.google(token)
+      // Clear the Supabase session — we use our own JWT now
       await supabase.auth.signOut().catch(() => {})
       setToken(res.token)
       setUser(res.user)
-      window.history.replaceState({}, '', '/')
+      // Clean URL if we came back from OAuth
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
       return res.user
     } catch (err) {
-      console.warn('Google login gagal:', err.message)
+      console.warn('Exchange Supabase session gagal:', err.message)
       await supabase.auth.signOut().catch(() => {})
       return null
     }
@@ -56,19 +38,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     ;(async () => {
-      // Detect if we're coming back from Google OAuth (PKCE code in URL)
-      const params = new URLSearchParams(window.location.search)
-      const hasOAuthCode = params.get('code') !== null
-      const hasGoogleFlag = params.get('google') === '1'
-
+      // 1. Check our own token first (fast path — no Supabase call)
       const t = getToken()
       if (t) {
         try {
           const res = await authApi.me(t)
           setUser(res.user)
-          if (hasOAuthCode || hasGoogleFlag) {
-            window.history.replaceState({}, '', '/')
-          }
           setInitializing(false)
           return
         } catch (err) {
@@ -76,25 +51,21 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // If no local token, try Supabase session (Google OAuth or PKCE)
-      const hydrated = await hydrateFromGoogle(hasOAuthCode ? false : true)
-      if (hydrated) {
-        setInitializing(false)
-        return
-      }
-
+      // 2. No local token → try Supabase session (covers Google OAuth PKCE callback)
+      await exchangeSupabaseSession()
       setInitializing(false)
     })()
 
+    // 3. Listen for Supabase auth state changes (PKCE callback triggers SIGNED_IN)
     if (supabase) {
       const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_IN' && !getToken()) {
-          hydrateFromGoogle(false)
+        if (event === 'SIGNED_IN') {
+          exchangeSupabaseSession()
         }
       })
       return () => sub?.subscription.unsubscribe()
     }
-  }, [hydrateFromGoogle])
+  }, [exchangeSupabaseSession])
 
   const applySession = (res) => {
     if (res?.token && res?.user) {
@@ -128,8 +99,8 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/?google=1`,
-        queryParams: { prompt: 'select_account' }
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' },
       },
     })
     if (error) throw new Error(error.message)
