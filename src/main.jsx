@@ -3,11 +3,16 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './theme/ThemeProvider'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
-      <App />
+      <TooltipProvider>
+        <App />
+        <Toaster position="top-right" />
+      </TooltipProvider>
     </ThemeProvider>
   </StrictMode>,
 )

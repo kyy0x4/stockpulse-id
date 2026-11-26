@@ -5,6 +5,10 @@ import {
   LayoutDashboard, SlidersHorizontal, Star, PieChart, LineChart, Globe,
   Newspaper, Activity, Zap, LogOut, ChevronDown, Crown, UserCog,
 } from 'lucide-react'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu'
 import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
 import { supabase } from '../../api/supabase'
@@ -53,14 +57,10 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
     try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]') } catch { return [] }
   })
   const [open, setOpen] = useState(false)
-  const [userOpen, setUserOpen] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
   const [loadingNews, setLoadingNews] = useState(true)
   const [drawer, setDrawer] = useState(false)
 
   const panelRef = useRef(null)
-  const userMenuRef = useRef(null)
-  const moreRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -77,15 +77,13 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
   useEffect(() => {
     const onClick = (e) => {
       if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false)
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserOpen(false)
-      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); setUserOpen(false); setMoreOpen(false); setDrawer(false) } }
+    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); setDrawer(false) } }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
@@ -102,7 +100,7 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
 
   const unread = news.filter((n) => !seen.includes(n.link)).length
 
-  const go = (item) => { onNavigate?.(item.id); setDrawer(false); setMoreOpen(false) }
+  const go = (item) => { onNavigate?.(item.id); setDrawer(false) }
 
   return (
     <>
@@ -135,48 +133,30 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
             )
           })}
 
-          <div ref={moreRef} style={{ position: 'relative', zIndex: 50 }}>
-            <button
-              className={`topnav-link ${MORE_NAV.some((m) => m.id === page) ? 'active' : ''}`}
-              onClick={() => setMoreOpen((v) => !v)}
-            >
-              More <ChevronDown size={13} style={{ transform: moreOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-            </button>
-            <AnimatePresence>
-              {moreOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.13 }}
-                  style={{
-                    position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 190,
-                    background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12,
-                    boxShadow: 'var(--shadow-pop)', padding: 6, overflow: 'hidden',
-                  }}
-                >
-                  {MORE_NAV.map((m) => {
-                    const Icon = m.icon
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => go(m)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-                          padding: '9px 10px', border: 'none', borderRadius: 8, background: 'none',
-                          color: page === m.id ? 'var(--accent)' : 'var(--text2)', fontSize: 13,
-                          cursor: 'pointer', textAlign: 'left',
-                        }}
-                        className="hoverable"
-                      >
-                        <Icon size={15} /> {m.label}
-                      </button>
-                    )
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <button
+                className={`topnav-link ${MORE_NAV.some((m) => m.id === page) ? 'active' : ''}`}
+              >
+                More <ChevronDown size={13} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8}>
+              <DropdownMenuLabel style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                Navigasi
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {MORE_NAV.map((m) => {
+                const Icon = m.icon
+                return (
+                  <DropdownMenuItem key={m.id} onClick={() => go(m)}>
+                    <Icon size={15} style={{ color: page === m.id ? 'var(--accent)' : 'var(--text3)' }} />
+                    {m.label}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         <div className="topnav-actions">
@@ -282,72 +262,44 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
           </div>
 
           {user && (
-            <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setUserOpen((v) => !v)}
-                title={user.email}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, height: 34,
-                  border: '1px solid var(--border)', background: 'var(--bg3)',
-                  borderRadius: 9, padding: '0 8px 0 3px', cursor: 'pointer', color: 'var(--text)',
-                }}
-              >
-                <span style={{
-                  height: 26, width: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--accent)', color: '#0b0e14', borderRadius: 7,
-                  fontWeight: 700, fontSize: 13,
-                }}>
-                  {(user.name || user.email || '?').charAt(0).toUpperCase()}
-                </span>
-                <span className="hidden md:block" style={{ fontSize: 12, fontWeight: 500, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.name || user.email}
-                </span>
-              </button>
-              <AnimatePresence>
-                {userOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                    transition={{ duration: 0.15 }}
-                    style={{
-                      position: 'absolute', right: 0, top: 'calc(100% + 10px)', minWidth: 230,
-                      background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12,
-                      boxShadow: 'var(--shadow-pop)', overflow: 'hidden',
-                    }}
-                  >
-                    <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{user.name || 'Pengguna'}</div>
-                      <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--text3)', marginTop: 2, wordBreak: 'break-all' }}>{user.email}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 10.5, color: supabase ? 'var(--up)' : 'var(--text3)' }}>
-                        <Wifi size={12} /> {supabase ? 'Realtime aktif' : 'Refresh manual'}
-                      </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <button
+                  title={user.email}
+                  className="flex items-center gap-2 h-[34px] px-2 pr-3 rounded-lg border bg-secondary text-foreground text-xs font-medium cursor-pointer"
+                >
+                  <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-accent text-primary-foreground text-[13px] font-bold">
+                    {(user.name || user.email || '?').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="hidden md:block max-w-[110px] truncate">{user.name || user.email}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={8}>
+                <DropdownMenuLabel>
+                  <div>
+                    <div className="text-[13px] font-semibold">{user.name || 'Pengguna'}</div>
+                    <div className="text-[10.5px] font-mono text-muted-foreground break-all">{user.email}</div>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px]" style={{ color: supabase ? 'var(--up)' : 'var(--text3)' }}>
+                      <Wifi size={12} /> {supabase ? 'Realtime aktif' : 'Refresh manual'}
                     </div>
-                    <button
-                      onClick={() => { setUserOpen(false); toggleTheme() }}
-                      className="hoverable"
-                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', color: 'var(--text2)', fontSize: 12.5, cursor: 'pointer' }}
-                    >
-                      <ThemeIcon size={14} /> Ganti tema
-                    </button>
-                    <button
-                      onClick={() => { onNavigate?.('profile'); setUserOpen(false); setDrawer(false) }}
-                      className="hoverable"
-                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', color: 'var(--text2)', fontSize: 12.5, cursor: 'pointer' }}
-                    >
-                      <UserCog size={14} /> Profil & Pengaturan
-                    </button>
-                    <button
-                      onClick={onLogout}
-                      className="hoverable"
-                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', color: 'var(--down)', fontSize: 12.5, cursor: 'pointer' }}
-                    >
-                      <LogOut size={14} /> Log out
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toggleTheme()}>
+                  <ThemeIcon size={14} /> Ganti tema
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onNavigate?.('profile')}>
+                  <UserCog size={14} /> Profil & Pengaturan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={onLogout}
+                >
+                  <LogOut size={14} /> Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </header>

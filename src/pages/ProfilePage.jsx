@@ -4,15 +4,18 @@ import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../theme/ThemeProvider'
 import { accountApi } from '../api/auth'
 import { motion } from 'framer-motion'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Mail, Lock, Shield, Bell, CreditCard, Download,
-  LogOut, Pencil, Star, TrendingUp, AlertTriangle, Check
+  LogOut, Pencil, Star, TrendingUp, Check
 } from 'lucide-react'
 
 const PLAN_META = {
-  free: { label: 'Free', color: 'var(--text3)', limit: 3 },
-  pro: { label: 'Pro', color: 'var(--accent)', limit: 20 },
-  enterprise: { label: 'Enterprise', color: 'var(--hold)', limit: null },
+  free: { label: 'Free', tone: 'neutral', limit: 3 },
+  pro: { label: 'Pro', tone: 'accent', limit: 20 },
+  enterprise: { label: 'Enterprise', tone: 'amber', limit: null },
 }
 
 export default function ProfilePage() {
@@ -52,29 +55,26 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     setSaving(true)
-    // Stub: update name (requires a backend endpoint; keep local state for now)
     setEditing(false)
     setSaving(false)
     show('Profil disimpan ✓')
   }
 
   const StatCard = ({ icon: Icon, label, value, sub }) => (
-    <div className="cg-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          height: 32, width: 32, borderRadius: 8, background: 'var(--accent-dim)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px solid var(--accent-line)'
-        }}>
-          <Icon size={16} style={{ color: 'var(--accent)' }} />
+    <Card>
+      <CardContent className="flex flex-col gap-2 p-4 pt-0">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 border border-accent/30">
+            <Icon size={16} className="text-accent" />
+          </div>
+          <span className="text-[11px] text-muted-foreground font-mono tracking-wider">{label}</span>
         </div>
-        <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>{label}</span>
-      </div>
-      <div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{sub}</div>}
-      </div>
-    </div>
+        <div>
+          <div className="text-[22px] font-bold text-foreground font-mono">{value}</div>
+          {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
+        </div>
+      </CardContent>
+    </Card>
   )
 
   return (
@@ -83,68 +83,45 @@ export default function ProfilePage() {
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="cg-card"
-          style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}
         >
-          <div style={{
-            height: 64, width: 64, borderRadius: 16,
-            background: 'linear-gradient(135deg, var(--accent-2), var(--accent))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, fontWeight: 800, color: '#0b0e14'
-          }}>
-            {(user?.name || user?.email || '?').charAt(0).toUpperCase()}
-          </div>
+          <Card>
+            <CardContent className="p-6 flex items-center gap-5 flex-wrap">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-teal-400 text-[28px] font-extrabold text-primary-foreground" style={{ background: 'linear-gradient(135deg, var(--accent-2), var(--accent))' }}>
+                {(user?.name || user?.email || '?').charAt(0).toUpperCase()}
+              </div>
 
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
-                {editing ? (
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{
-                      fontSize: 20, fontWeight: 700, color: 'var(--text)',
-                      background: 'var(--bg3)', border: '1px solid var(--border)',
-                      borderRadius: 8, padding: '4px 10px', width: 220, outline: 'none'
-                    }}
-                  />
-                ) : (user?.name || user?.email?.split('@')[0] || 'Pengguna')}
-                {editing && (
-                  <button onClick={saveProfile} disabled={saving} style={{
-                    background: 'var(--accent)', color: '#0b0e14', border: 'none',
-                    borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer'
-                  }}>
-                    {saving ? '…' : 'Simpan'}
-                  </button>
-                )}
-                {!editing && (
-                  <button onClick={() => setEditing(true)} style={{
-                    background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer'
-                  }} title="Edit nama">
-                    <Pencil size={15} />
-                  </button>
-                )}
-              </h1>
-              <span className={`tag ${plan === 'free' ? 'tag-neutral' : plan === 'pro' ? 'tag-accent' : 'tag-amber'}`}>
-                {planMeta.label}
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-              {user?.email}
-            </div>
-          </div>
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-2.5">
+                  <h1 className="font-display text-[22px] font-extrabold text-foreground">
+                    {editing ? (
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="text-[20px] font-bold text-foreground bg-secondary border rounded-lg px-2.5 py-1 w-[220px] outline-none focus:border-accent"
+                      />
+                    ) : (user?.name || user?.email?.split('@')[0] || 'Pengguna')}
+                    {editing && (
+                      <Button size="sm" onClick={saveProfile} disabled={saving}>
+                        {saving ? '…' : 'Simpan'}
+                      </Button>
+                    )}
+                    {!editing && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(true)}>
+                        <Pencil size={15} />
+                      </Button>
+                    )}
+                  </h1>
+                  <Badge tone={planMeta.tone}>{planMeta.label}</Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 font-mono">{user?.email}</div>
+              </div>
 
-          <button
-            onClick={() => navigate('/pricing')}
-            style={{
-              background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text)',
-              borderRadius: 10, padding: '10px 16px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600
-            }}
-          >
-            <CreditCard size={15} style={{ color: 'var(--accent)' }} />
-            {plan === 'free' ? 'Upgrade Plan' : 'Kelola Subscription'}
-          </button>
+              <Button variant="secondary" onClick={() => navigate('/pricing')}>
+                <CreditCard size={15} className="text-accent" />
+                {plan === 'free' ? 'Upgrade Plan' : 'Kelola Subscription'}
+              </Button>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Stats grid */}
@@ -179,124 +156,97 @@ export default function ProfilePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-            className="cg-card" style={{ padding: 20 }}
           >
-            <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em', color: 'var(--text3)', marginBottom: 14 }}>
-              PENGATURAN AKUN
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Mail size={15} style={{ color: 'var(--text2)' }} />
-                  <div>
-                    <div style={{ fontSize: 13, color: 'var(--text)' }}>{user?.email}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text3)' }}>Verified ✓</div>
+            <Card>
+              <CardHeader className="p-5 pb-3">
+                <CardTitle className="font-mono text-[11px] tracking-widest text-muted-foreground">
+                  PENGATURAN AKUN
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 pt-0 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between px-3 py-2.5 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <Mail size={15} className="text-ink-soft" />
+                    <div>
+                      <div className="text-[13px] text-foreground">{user?.email}</div>
+                      <div className="text-[10px] text-muted-foreground">Verified ✓</div>
+                    </div>
                   </div>
+                  <Badge tone="green"><Check size={11} /> Aktif</Badge>
                 </div>
-                <span className="tag tag-green"><Check size={11} /> Aktif</span>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Lock size={15} style={{ color: 'var(--text2)' }} />
-                  <div style={{ fontSize: 13, color: 'var(--text)' }}>Password</div>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <Lock size={15} className="text-ink-soft" />
+                    <div className="text-[13px] text-foreground">Password</div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => show('Fitur reset password belum tersedia')}>
+                    Ubah
+                  </Button>
                 </div>
-                <button
-                  onClick={() => show('Fitur reset password belum tersedia')}
-                  style={{
-                    background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
-                    borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer'
-                  }}
-                >
-                  Ubah
-                </button>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Download size={15} style={{ color: 'var(--text2)' }} />
-                  <div style={{ fontSize: 13, color: 'var(--text)' }}>Ekspor Data</div>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <Download size={15} className="text-ink-soft" />
+                    <div className="text-[13px] text-foreground">Ekspor Data</div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => show('Ekspor CSV tersedia di plan Pro')}>
+                    Ekspor
+                  </Button>
                 </div>
-                <button
-                  onClick={() => show('Ekspor CSV tersedia di plan Pro')}
-                  style={{
-                    background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
-                    borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer'
-                  }}
-                >
-                  Ekspor
-                </button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="cg-card" style={{ padding: 20 }}
           >
-            <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em', color: 'var(--text3)', marginBottom: 14 }}>
-              PREFERENSI
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Shield size={15} style={{ color: 'var(--text2)' }} />
-                  <div style={{ fontSize: 13, color: 'var(--text)' }}>Mode</div>
+            <Card>
+              <CardHeader className="p-5 pb-3">
+                <CardTitle className="font-mono text-[11px] tracking-widest text-muted-foreground">
+                  PREFERENSI
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 pt-0 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between px-3 py-2.5 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <Shield size={15} className="text-ink-soft" />
+                    <div className="text-[13px] text-foreground">Mode</div>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={toggleTheme}>
+                    {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                  </Button>
                 </div>
-                <button
-                  onClick={toggleTheme}
-                  style={{
-                    background: 'var(--bg2)', border: '1px solid var(--border)',
-                    borderRadius: 8, padding: '6px 12px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text)'
-                  }}
-                >
-                  {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-                </button>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Bell size={15} style={{ color: 'var(--text2)' }} />
-                  <div style={{ fontSize: 13, color: 'var(--text)' }}>Notifikasi</div>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2.5">
+                    <Bell size={15} className="text-ink-soft" />
+                    <div className="text-[13px] text-foreground">Notifikasi</div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/alerts')}>
+                    Kelola Alerts
+                  </Button>
                 </div>
-                <button
-                  onClick={() => navigate('/alerts')}
-                  style={{
-                    background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
-                    borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer'
-                  }}
-                >
-                  Kelola Alerts
-                </button>
-              </div>
-            </div>
 
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <button
-                onClick={() => { logout(); navigate('/') }}
-                style={{
-                  width: '100%', background: 'var(--down-dim)', border: '1px solid var(--down)',
-                  color: 'var(--down)', borderRadius: 8, padding: '10px 0',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer'
-                }}
-              >
-                <LogOut size={15} /> Keluar
-              </button>
-            </div>
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    className="w-full bg-transparent border-deep bg-destructive/10 hover:bg-destructive/20"
+                    style={{ background: 'var(--down-dim)', borderColor: 'var(--down)', color: 'var(--down)' }}
+                    onClick={() => { logout(); navigate('/') }}
+                  >
+                    <LogOut size={15} /> Keluar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
 
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            style={{
-              position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-              background: 'var(--bg2)', border: '1px solid var(--border)',
-              borderRadius: 10, padding: '10px 16px', fontSize: 13,
-              boxShadow: 'var(--shadow-pop)', zIndex: 100, color: 'var(--text)'
-            }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 rounded-lg border bg-card px-4 py-2.5 text-[13px] shadow-lg"
           >
             {toast}
           </motion.div>

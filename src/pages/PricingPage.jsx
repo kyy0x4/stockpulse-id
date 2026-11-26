@@ -1,7 +1,10 @@
-import { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Crown, Zap, ArrowUp, X, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Check, Crown, ArrowUp, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 const PLANS = [
   {
@@ -12,7 +15,7 @@ const PLANS = [
     cta: 'Mulai Sekarang',
     features: [
       { label: 'Screener 88 aset (saham, ETF, kripto)', included: true },
-      { label: 'ChartTradingView real-time', included: true },
+      { label: 'Chart TradingView real-time', included: true },
       { label: 'Watchlist & Portofolio dasar', included: true },
       { label: '3 Alert aktif', included: true },
       { label: 'Berita makro & impact', included: true },
@@ -66,46 +69,31 @@ export default function PricingPage() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <motion.h1
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-            style={{
-              fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 900,
-              color: 'var(--text)', letterSpacing: 0.2
-            }}
+            className="font-display text-[32px] font-black text-foreground"
+            style={{ letterSpacing: 0.2 }}
           >
-            Pilih <span style={{ color: 'var(--accent)' }}>Paket</span> Kamu
+            Pilih <span className="text-accent">Paket</span> Kamu
           </motion.h1>
-          <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 8, maxWidth: 520, margin: '8px auto 0' }}>
+          <p className="text-sm text-ink-soft max-w-[520px] mx-auto" style={{ marginTop: 8 }}>
             Upgrade kapan saja, batalkan kapan saja. Diskon 20% untuk pembayaran tahunan.
           </p>
 
-          <div style={{
-            marginTop: 22, display: 'inline-flex', gap: 0, border: '1px solid var(--border)',
-            borderRadius: 10, overflow: 'hidden', background: 'var(--bg2)'
-          }}>
+          {/* Billing toggle */}
+          <div className="mt-5 inline-flex rounded-lg border bg-card p-1 gap-1">
             <button
               onClick={() => setBilling('monthly')}
-              style={{
-                padding: '8px 18px', border: 'none', cursor: 'pointer',
-                background: billing === 'monthly' ? 'var(--accent-dim)' : 'transparent',
-                color: billing === 'monthly' ? 'var(--accent)' : 'var(--text2)',
-                fontSize: 13, fontWeight: 600, transition: 'all 0.15s'
-              }}
+              className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-all ${billing === 'monthly' ? 'bg-accent-dim text-accent' : 'text-ink-soft hover:text-foreground'}`}
             >
               Bulanan
             </button>
             <button
               onClick={() => setBilling('yearly')}
-              style={{
-                padding: '8px 18px', border: 'none', borderLeft: '1px solid var(--border)', cursor: 'pointer',
-                background: billing === 'yearly' ? 'var(--accent-dim)' : 'transparent',
-                color: billing === 'yearly' ? 'var(--accent)' : 'var(--text2)',
-                fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-                display: 'inline-flex', alignItems: 'center', gap: 8
-              }}
+              className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-all inline-flex items-center gap-2 ${billing === 'yearly' ? 'bg-accent-dim text-accent' : 'text-ink-soft hover:text-foreground'}`}
             >
-              Tahunan <span style={{
-                background: 'var(--accent)', color: '#0b0e14', borderRadius: 6,
-                padding: '2px 7px', fontSize: 10, fontWeight: 700
-              }}>HEMAT 20%</span>
+              Tahunan
+              <span className="bg-accent text-primary-foreground rounded-md px-1.5 py-0.5 text-[10px] font-bold">
+                HEMAT 20%
+              </span>
             </button>
           </div>
         </div>
@@ -117,78 +105,70 @@ export default function PricingPage() {
           {PLANS.map((p) => {
             const discount = billing === 'yearly' ? 0.8 : 1
             const displayPrice = p.price === 0 ? 0 : Math.round(p.price * discount)
-            const perYear = billing === 'yearly' ? 'ditagih tahunan' : ''
             return (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-                style={{
-                  border: `1px solid ${p.popular ? 'var(--accent-line)' : 'var(--border)'}`,
-                  background: p.popular ? 'var(--bg2)' : 'var(--bg2)',
-                  borderRadius: 14, padding: 24,
-                  position: 'relative', overflow: 'hidden'
-                }}
               >
-                {p.popular && (
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0,
-                    background: 'var(--accent)', color: '#0b0e14',
-                    fontSize: 10, fontWeight: 700, padding: '4px 0', textAlign: 'center',
-                    letterSpacing: '0.2em', fontFamily: 'var(--font-mono)'
-                  }}>
-                    PALING LAKU
-                  </div>
-                )}
-
-                <div style={{ marginTop: p.popular ? 14 : 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <p style={{
-                      fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--text)'
-                    }}>{p.name}</p>
-                    {p.popular && <Crown size={16} style={{ color: 'var(--accent)' }} />}
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 32, fontWeight: 700, color: 'var(--text)'
-                    }}>${displayPrice}</span>
-                    {p.price > 0 && <span style={{ color: 'var(--text3)', fontSize: 13 }}>/{billing === 'yearly' ? 'bln' : 'bln'}</span>}
-                    {p.price === 0 && <span style={{ color: 'var(--text3)', fontSize: 13 }}> selamanya</span>}
-                    {billing === 'yearly' && p.price > 0 && (
-                      <div style={{ fontSize: 10, color: 'var(--accent)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                        ${Math.round(p.price * 12 * discount)}/tahun
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {p.features.map((f) => (
-                    <li key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13 }}>
-                      {f.included ? (
-                        <Check size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                      ) : (
-                        <X size={14} style={{ color: 'var(--text3)', opacity: 0.4, flexShrink: 0 }} />
-                      )}
-                      <span style={{ color: f.included ? 'var(--text2)' : 'var(--text3)', textDecoration: f.included ? 'none' : 'line-through' }}>
-                        {f.label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => p.id === 'enterprise' ? navigate('/contact') : navigate('/pricing/checkout', { state: { plan: p.id, billing } })}
+                <Card
+                  className="relative h-full overflow-hidden"
                   style={{
-                    width: '100%', padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    background: p.popular ? 'var(--accent)' : 'var(--bg3)',
-                    color: p.popular ? '#0b0e14' : 'var(--text)',
-                    fontSize: 13, fontWeight: 700,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    borderColor: p.popular ? 'var(--accent-line)' : undefined,
+                    background: p.popular ? 'var(--bg2)' : undefined,
                   }}
                 >
-                  {p.cta}
-                  {p.price > 0 && <ArrowUp size={13} />}
-                </button>
+                  {p.popular && (
+                    <div className="absolute top-0 left-0 right-0 bg-accent text-primary-foreground text-[10px] font-bold py-1 text-center tracking-[0.2em] font-mono">
+                      PALING LAKU
+                    </div>
+                  )}
+
+                  <Card
+                    className="border-0 bg-transparent p-6"
+                    style={{ marginTop: p.popular ? 14 : 0 }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-display text-[20px] font-extrabold text-foreground">{p.name}</h3>
+                      {p.popular && <Crown size={16} className="text-accent" />}
+                    </div>
+                    <div className="mb-4">
+                      <span className="font-mono text-[32px] font-bold text-foreground">${displayPrice}</span>
+                      {p.price > 0 && <span className="text-muted-foreground text-[13px]">/bln</span>}
+                      {p.price === 0 && <span className="text-muted-foreground text-[13px]"> selamanya</span>}
+                      {billing === 'yearly' && p.price > 0 && (
+                        <div className="text-[10px] text-accent font-mono mt-0.5">
+                          ${Math.round(p.price * 12 * discount)}/tahun
+                        </div>
+                      )}
+                    </div>
+
+                    <ul className="flex flex-col gap-2.5 mb-5">
+                      {p.features.map((f) => (
+                        <li key={f.label} className="flex items-center gap-2 text-[13px]">
+                          {f.included ? (
+                            <Check size={14} className="text-accent shrink-0" />
+                          ) : (
+                            <X size={14} className="text-muted-foreground opacity-40 shrink-0" />
+                          )}
+                          <span
+                            className={f.included ? 'text-ink-soft' : 'text-muted-foreground line-through'}
+                          >
+                            {f.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      variant={p.popular ? 'default' : 'secondary'}
+                      className="w-full"
+                      onClick={() => p.id === 'enterprise' ? navigate('/contact') : navigate('/pricing/checkout', { state: { plan: p.id, billing } })}
+                    >
+                      {p.cta}
+                      {p.price > 0 && <ArrowUp size={13} />}
+                    </Button>
+                  </Card>
+                </Card>
               </motion.div>
             )
           })}
