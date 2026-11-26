@@ -1,10 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { accountApi } from '../api/auth'
-import { Bell, Plus, Trash2, X } from 'lucide-react'
+import { Bell, Plus, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 
 const ALERT_TYPES = [
   { value: 'price_above', label: 'Harga di atas' },
@@ -60,8 +68,9 @@ export default function AlertsPage() {
       setAlerts(res.alerts || [])
       setShowForm(false)
       setForm({ ticker: '', type: 'price_above', value: null })
+      toast.success('Alert ditambahkan')
     } catch (e) {
-      alert(e.message || 'Gagal menambah alert')
+      toast.error(e.message || 'Gagal menambah alert')
     }
   }
 
@@ -73,146 +82,135 @@ export default function AlertsPage() {
   return (
     <div className="page-wrap" style={{ paddingTop: 8, paddingBottom: 40 }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
+        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 20, flexWrap: 'wrap', gap: 12
         }}>
           <div>
-            <h1 style={{
-              fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800,
-              color: 'var(--text)', margin: 0
-            }}>
-              <Bell size={22} style={{ color: 'var(--accent)', verticalAlign: '-3px', marginRight: 6 }} />
+            <h1 className="font-display text-[24px] font-extrabold text-foreground" style={{ margin: 0 }}>
+              <Bell size={22} className="text-accent" style={{ verticalAlign: '-3px', marginRight: 6 }} />
               Alerts
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+            <p className="text-xs text-muted-foreground" style={{ marginTop: 4 }}>
               {alerts.length} dari {limit === null ? 'unlimited' : limit} alert aktif
               {limit !== null && alerts.length >= limit && (
-                <span style={{ color: 'var(--hold)', marginLeft: 8 }}>(limit tercapai)</span>
+                <span className="ml-2 text-hold">(limit tercapai)</span>
               )}
             </p>
           </div>
-          <button
+          <Button
+            variant={canAdd ? 'default' : 'outline'}
+            size="sm"
             onClick={() => canAdd ? setShowForm(true) : navigate('/pricing', { state: { upgrade: true } })}
-            style={{
-              padding: '8px 14px', borderRadius: 8, border: '1px solid var(--accent-line)',
-              background: canAdd ? 'var(--accent-dim)' : 'var(--bg3)',
-              color: canAdd ? 'var(--accent)' : 'var(--text3)',
-              cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              display: 'inline-flex', alignItems: 'center', gap: 6
-            }}
           >
             <Plus size={14} /> {canAdd ? 'Tambah Alert' : 'Upgrade untuk Limit'}
-          </button>
+          </Button>
         </div>
 
+        {/* Add-alert form */}
         {showForm && canAdd && (
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            style={{
-              background: 'var(--bg2)', border: '1px solid var(--border)',
-              borderRadius: 12, padding: 16, marginBottom: 16,
-              display: 'flex', gap: 10, flexWrap: 'wrap'
-            }}
+            className="rounded-xl border bg-card p-4"
           >
-            <select
-              value={form.ticker}
-              onChange={(e) => setForm({ ...form, ticker: e.target.value })}
-              style={{
-                flex: 1, minWidth: 120, padding: '8px 10px', borderRadius: 8,
-                border: '1px solid var(--border)', background: 'var(--bg3)',
-                color: 'var(--text)', fontSize: 13
-              }}
-            >
-              <option value="">Pilih ticker…</option>
-              {tickers.map((t) => (
-                <option key={t.ticker} value={t.ticker}>{t.ticker} — {t.name}</option>
-              ))}
-            </select>
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value, value: e.target.value.startsWith('price_') ? form.value : null })}
-              style={{
-                padding: '8px 10px', borderRadius: 8,
-                border: '1px solid var(--border)', background: 'var(--bg3)',
-                color: 'var(--text)', fontSize: 13
-              }}
-            >
-              {ALERT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            {form.type.startsWith('price_') && (
-              <input
-                type="number"
-                placeholder="Target harga"
-                value={form.value ?? ''}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-                style={{
-                  width: 130, padding: '8px 10px', borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--bg3)',
-                  color: 'var(--text)', fontSize: 13
-                }}
-              />
-            )}
-            <button
-              onClick={save}
-              style={{
-                padding: '8px 14px', borderRadius: 8, border: 'none',
-                background: 'var(--accent)', color: '#0b0e14',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              Simpan
-            </button>
-            <button
-              onClick={() => setShowForm(false)}
-              style={{
-                padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)',
-                background: 'transparent', color: 'var(--text2)', cursor: 'pointer'
-              }}
-            >
-              Batal
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[140px] flex flex-col gap-1.5">
+                <Label className="text-xs text-muted-foreground">Ticker</Label>
+                <Select
+                  value={form.ticker}
+                  onValueChange={(v) => setForm({ ...form, ticker: v })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih ticker…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tickers.map((t) => (
+                      <SelectItem key={t.ticker} value={t.ticker}>
+                        {t.ticker} — {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 w-[150px]">
+                <Label className="text-xs text-muted-foreground">Jenis</Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(v) => setForm({
+                    ...form, type: v,
+                    value: v.startsWith('price_') ? form.value : null
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALERT_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {form.type.startsWith('price_') && (
+                <div className="flex flex-col gap-1.5 w-[140px]">
+                  <Label className="text-xs text-muted-foreground">Target harga</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={form.value ?? ''}
+                    onChange={(e) => setForm({ ...form, value: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <Button onClick={save}>Simpan</Button>
+                <Button variant="outline" onClick={() => setShowForm(false)}>Batal</Button>
+              </div>
+            </div>
           </motion.div>
         )}
 
+        {/* List */}
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>Memuat alert…</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">Memuat alert…</div>
         ) : alerts.length === 0 ? (
-          <div style={{
-            padding: 50, textAlign: 'center', background: 'var(--bg2)',
-            border: '1px dashed var(--border)', borderRadius: 14
-          }}>
-            <p style={{ fontSize: 13, color: 'var(--text3)' }}>Belum ada alert. Tambahin yang pertama!</p>
+          <div className="rounded-xl border border-dashed bg-card py-12 text-center">
+            <p className="text-sm text-muted-foreground">Belum ada alert. Tambahin yang pertama!</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {alerts.map((al) => {
               const typeLabel = ALERT_TYPES.find((t) => t.value === al.type)?.label || al.type
               return (
-                <div key={al.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 14px', background: 'var(--bg2)',
-                  border: '1px solid var(--border)', borderRadius: 10
-                }}>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
-                    color: 'var(--accent)', minWidth: 70
-                  }}>{al.ticker}</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1 }}>
+                <div
+                  key={al.id}
+                  className="flex items-center gap-3 rounded-lg border bg-card px-3.5 py-3"
+                >
+                  <span className="font-mono text-[13px] font-bold text-accent min-w-[70px]">
+                    {al.ticker}
+                  </span>
+                  <span className="text-[13px] text-ink-soft flex-1">
                     {typeLabel}
-                    {al.value != null && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text)', marginLeft: 6 }}>${al.value}</span>}
+                    {al.value != null && (
+                      <span className="ml-1.5 font-mono text-foreground">${al.value}</span>
+                    )}
                   </span>
                   {al.triggered && (
-                    <span className="tag tag-green" style={{ fontSize: 10 }}>Tembus</span>
+                    <Badge tone="green">Tembus</Badge>
                   )}
-                  <button onClick={() => remove(al.id)} style={{
-                    border: 'none', background: 'none', cursor: 'pointer',
-                    color: 'var(--down)', padding: 4, borderRadius: 6
-                  }} aria-label="Hapus alert">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => remove(al.id)}
+                    aria-label="Hapus alert"
+                  >
                     <Trash2 size={14} />
-                  </button>
+                  </Button>
                 </div>
               )
             })}

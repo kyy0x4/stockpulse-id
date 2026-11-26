@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'
 import { Spark, pct, viewStock, cap, vol, fmtPrice, kindLabel } from '../components/ui/DashboardComponents'
 import StockLogo from '../components/ui/StockLogo'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 const KINDS = [
   { id: 'all', label: 'Semua' },
@@ -128,10 +130,10 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
           <p className="page-head-sub">Filter, urutkan, dan analisa {stats.n} aset dengan skor fundamental + teknikal.</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span className="tag tag-green tag-dot">Live</span>
-          <button className="pill" onClick={exportCSV}>
+          <Badge tone="green" dot>Live</Badge>
+          <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download size={14} /> Export CSV
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -148,7 +150,7 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
         {KINDS.map((k) => (
           <button key={k.id} className={`tabstrip-tab ${kind === k.id ? 'active' : ''}`} onClick={() => setKind(k.id)}>
             {k.label}
-            <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text3)' }}>
+            <span className="ml-1.5 font-mono text-[10px] text-ink-faint">
               {k.id === 'all' ? data.length : data.filter((s) => s.kind === k.id).length}
             </span>
           </button>
@@ -158,9 +160,14 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
       {/* Toolbar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span className="hide-sm" style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginRight: 2 }}>SEKTOR</span>
+          <span className="hide-sm font-mono text-[11px] text-ink-faint" style={{ marginRight: 2 }}>SEKTOR</span>
           {sectors.map((s) => (
-            <button key={s} className={`pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)} style={{ height: 25, fontSize: 11.5 }}>
+            <button
+              key={s}
+              className={`pill ${sector === s ? 'active' : ''}`}
+              onClick={() => setSector(s)}
+              style={{ height: 25, fontSize: 11.5 }}
+            >
               {s === 'All' ? 'Semua' : s}
             </button>
           ))}
@@ -191,13 +198,17 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
             <thead>
               <tr>
                 <th className="l sticky-col" style={{ minWidth: 210 }}>
-                  <button onClick={() => handleSort('ticker')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'inherit', font: 'inherit', cursor: 'pointer' }} className={sortK === 'ticker' ? 'sorted' : ''}>
+                  <button
+                    onClick={() => handleSort('ticker')}
+                    className={`inline-flex items-center gap-1 bg-transparent border-none cursor-pointer ${sortK === 'ticker' ? 'sorted' : ''}`}
+                    style={{ color: 'inherit', font: 'inherit' }}
+                  >
                     Aset <SortIcon active={sortK === 'ticker'} dir={sortD} />
                   </button>
                 </th>
                 {COLUMNS.slice(1).map((c) => (
                   <th key={c.k} className={`${c.cls} ${sortK === c.k ? 'sorted' : ''}`} onClick={() => handleSort(c.k)}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span className="inline-flex items-center gap-1">
                       {c.label} <SortIcon active={sortK === c.k} dir={sortD} />
                     </span>
                   </th>
@@ -213,14 +224,14 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
                   <tr key={s.ticker} onClick={() => onSelectStock?.(s)}>
                     <td className="l sticky-col">
                       <div className="cell-ticker">
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text3)', width: 18, textAlign: 'right' }}>{i + 1}</span>
+                        <span className="font-mono text-[11px] text-ink-faint w-[18px] text-right">{i + 1}</span>
                         <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div className="flex items-center gap-1.5">
                             <span className="cell-sym">{s.ticker}</span>
-                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 4px' }}>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0">
                               {s.kind === 'crypto' ? 'KRP' : s.kind === 'etf' ? 'ETF' : 'US'}
-                            </span>
+                            </Badge>
                           </div>
                           <div className="cell-name">{s.name}</div>
                         </div>
@@ -229,8 +240,8 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
 
                     <td className="num t-strong">{fmtPrice(s.price, s.kind)}</td>
 
-                    <td className="num" style={{ color: up ? 'var(--up)' : 'var(--down)', fontWeight: 600 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                    <td className="num font-semibold" style={{ color: up ? 'var(--up)' : 'var(--down)' }}>
+                      <span className="inline-flex items-center gap-[3px] justify-end">
                         {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                         {pct(s.changePct)}
                       </span>
@@ -239,33 +250,34 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
                     <td className="num t-soft">{vol(s.volume) ?? '—'}</td>
                     <td className="num t-soft">{cap(s.mktCap) ?? '—'}</td>
                     <td className="l">
-                      <span className="tag tag-neutral">{s.sector}</span>
+                      <Badge variant="secondary" className="capitalize">{s.sector}</Badge>
                     </td>
                     <td className="num t-soft">{s.pe != null ? `${Number(s.pe).toFixed(1)}x` : '—'}</td>
                     <td className="num t-soft">{s.roe != null ? `${Number(s.roe).toFixed(1)}%` : '—'}</td>
                     <td className="num" style={{ color: s.growth != null && s.growth > 10 ? 'var(--up)' : 'var(--text2)' }}>
                       {s.growth != null ? `${Number(s.growth).toFixed(1)}%` : '—'}
                     </td>
-                    <td className="c num" style={{ color: rsiColor(s.rsi) }}>{s.rsi != null ? Number(s.rsi).toFixed(0) : '—'}</td>
+                    <td className="c num font-medium" style={{ color: rsiColor(s.rsi) }}>{s.rsi != null ? Number(s.rsi).toFixed(0) : '—'}</td>
                     <td className="c">
                       {s.trend ? (
-                        <span className={`tag ${s.trend === 'Uptrend' ? 'tag-green' : s.trend === 'Downtrend' ? 'tag-red' : 'tag-amber'}`}>
+                        <Badge tone={s.trend === 'Uptrend' ? 'green' : s.trend === 'Downtrend' ? 'red' : 'amber'}>
                           {s.trend}
-                        </span>
+                        </Badge>
                       ) : '—'}
                     </td>
                     <td className="c">
                       <ScoreCell value={s.composite ?? 0} />
                     </td>
                     <td className="c">
-                      <span className={`tag ${s.signal === 'Buy' ? 'tag-green' : s.signal === 'Sell' ? 'tag-red' : 'tag-amber'} tag-dot`}>
+                      <Badge tone={s.signal === 'Buy' ? 'green' : s.signal === 'Sell' ? 'red' : 'amber'} dot>
                         {s.signal}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="c">
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: isFav ? 'var(--accent)' : 'var(--text3)', padding: 4, lineHeight: 0 }}
+                        className="border-none bg-transparent cursor-pointer p-1 leading-none"
+                        style={{ color: isFav ? 'var(--accent)' : 'var(--text3)' }}
                         aria-label="Watchlist"
                       >
                         <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
@@ -283,7 +295,7 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text3)' }}>
+      <div className="mt-2.5 flex justify-between font-mono text-[11px] text-ink-faint">
         <span>{rows.length} / {data.length} aset ditampilkan</span>
         <span>Klik header kolom untuk mengurutkan</span>
       </div>
@@ -293,7 +305,9 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
 
 function SortIcon({ active, dir }) {
   if (!active) return <ArrowUpDown size={10} style={{ opacity: 0.4 }} />
-  return dir === -1 ? <ChevronDown size={11} color="var(--accent)" /> : <ChevronUp size={11} color="var(--accent)" />
+  return dir === -1
+    ? <ChevronDown size={11} className="text-accent" />
+    : <ChevronUp size={11} className="text-accent" />
 }
 
 function rsiColor(rsi) {
@@ -306,11 +320,11 @@ function rsiColor(rsi) {
 function ScoreCell({ value }) {
   const color = value >= 80 ? 'var(--up)' : value >= 60 ? 'var(--hold)' : 'var(--down)'
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', minWidth: 84 }}>
-      <div className="sbar-track" style={{ width: 44 }}>
+    <div className="inline-flex items-center gap-2 justify-end min-w-[84px]">
+      <div className="sbar-track w-[44px]">
         <div className="sbar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
       </div>
-      <span className="num" style={{ color, fontWeight: 600, width: 22, textAlign: 'right' }}>{value}</span>
+      <span className="num font-semibold w-[22px] text-right" style={{ color }}>{value}</span>
     </div>
   )
 }
