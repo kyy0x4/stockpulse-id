@@ -4,6 +4,17 @@ import { ChevronLeft, Star, TrendingUp, TrendingDown, Clock, Loader2 } from 'luc
 import { api } from '../api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
+import {
+  Card, CardHeader, CardTitle, CardDescription, CardContent,
+} from '@/components/ui/card'
+import {
+  Tabs, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 function Metric({ label, value, good }) {
   const color = value == null ? 'var(--text3)' : good === true ? 'var(--up)' : good === false ? 'var(--down)' : 'var(--text)'
@@ -106,15 +117,20 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
         <div className="font-mono text-[10px] text-ink-faint tracking-[0.08em]">ANALISA ASET · HALAMAN DETAIL</div>
       </div>
 
-      <div className="card sm:px-6 p-5">
+      <Card className="sm:px-6 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-[32px] font-extrabold text-foreground" style={{ letterSpacing: '-0.02em', margin: 0 }}>{s.ticker}</h2>
-              <Badge tone={merged.signal === 'Buy' ? 'green' : merged.signal === 'Sell' ? 'red' : 'amber'} dot>
-                {merged.signal}
-              </Badge>
-              <span className="chip">{kindLabel(merged.kind)}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge tone={merged.signal === 'Buy' ? 'green' : merged.signal === 'Sell' ? 'red' : 'amber'} dot>
+                    {merged.signal}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>Sinyal berbasis skor teknikal & fundamental</TooltipContent>
+              </Tooltip>
+              <Badge variant="outline">{kindLabel(merged.kind)}</Badge>
             </div>
             <p className="text-[13px] text-ink-soft mt-0.5">{name} · {sector}</p>
             <p className="text-[11px] text-ink-soft mt-1.5 flex items-center gap-1.5">
@@ -123,10 +139,10 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           </div>
           <div className="flex items-center gap-3">
             <Button
-              variant="outline"
+              variant={isFav ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => onToggleFav(s.ticker)}
-              className={isFav ? 'border-up bg-up-dim text-up' : 'border-line-strong bg-elevated text-ink-soft'}
+              className={isFav ? 'border-up bg-up-dim text-up' : ''}
             >
               <Star size={13} fill={isFav ? 'currentColor' : 'none'} />
               {isFav ? 'Di Watchlist' : 'Watchlist'}
@@ -143,37 +159,35 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           </div>
         </div>
 
+        <Separator className="my-5" />
+
         {/* Price performance chart */}
-        <div className="mt-5 border bg-elevated p-4 rounded-2xl">
+        <Card className="border bg-elevated p-4">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <p className="text-[13px] font-semibold">
-              Performa Harga · {PERIODS.find((p) => p.id === period)?.label || period}
+            <p className="text-[13px] font-semibold text-foreground">
+              Performa Harga
             </p>
             {loadingHistory && <Loader2 size={14} className="animate-spin text-ink-faint mr-2" />}
             {periodReturn != null && (
               <Badge tone={periodReturn >= 0 ? 'green' : 'red'} className="ml-auto">
-                {periodReturn >= 0 ? '+' : ''}{periodReturn.toFixed(2)}% {PERIODS.find((p) => p.id === period)?.label || ''}
+                {periodReturn >= 0 ? '+' : ''}{periodReturn.toFixed(2)}%
               </Badge>
             )}
           </div>
 
-          {/* Interval Selector */}
-          <div className="flex gap-1.5 mb-3.5 flex-wrap">
-            {PERIODS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setPeriod(p.id)}
-                className="font-mono text-[11px] font-semibold py-1.5 px-3.5 rounded-lg border transition-all cursor-pointer"
-                style={{
-                  borderColor: period === p.id ? 'var(--accent)' : 'var(--border)',
-                  background: period === p.id ? 'var(--accent-dim)' : 'transparent',
-                  color: period === p.id ? 'var(--accent)' : 'var(--text2)',
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            value={period}
+            onValueChange={setPeriod}
+            className="mb-3.5"
+          >
+            <TabsList className="h-8">
+              {PERIODS.map((p) => (
+                <TabsTrigger key={p.id} value={p.id} className="font-mono text-[11px] font-semibold h-6 px-3">
+                  {p.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {series.length >= 2 ? (
             <>
@@ -186,16 +200,22 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           ) : (
             <Spark data={s.sparkline} up={trendPositive} w={800} h={200} fluid />
           )}
-        </div>
+        </Card>
+
+        <Separator className="my-5" />
 
         {/* Fundamental + Teknikal grid */}
-        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
-          <div>
-            <div className="flex items-center mb-2.5">
-              <p className="text-[13px] font-semibold">{isProfile ? 'Profil Pasar' : 'Fundamental'}</p>
-              <span className="ml-auto font-mono text-[11px] text-accent">Skor: {merged.fundScore}/100</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
+          <Card>
+            <CardHeader className="px-5 pt-5 pb-2">
+              <CardTitle className="text-[13px] font-semibold text-foreground">
+                {isProfile ? 'Profil Pasar' : 'Fundamental'}
+              </CardTitle>
+              <CardDescription className="text-[11px] font-mono text-accent">
+                Skor: {merged.fundScore}/100
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-5 flex flex-col gap-1.5">
               {isProfile ? (
                 <>
                   <Metric label="Return 30 hari" value={f.return_30d != null ? `${f.return_30d > 0 ? '+' : ''}${f.return_30d}%` : (f.metrics?.return_30d ?? null)} good={(f.return_30d ?? 0) > 0} />
@@ -213,33 +233,42 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                   <Metric label="Pertumbuhan Laba" value={f.growth != null ? `${fmtNum(f.growth, 1)}%` : null} good={f.growth > 10} />
                 </>
               )}
-            </div>
-            {pillarEntries.length > 0 && (
-              <div className="mt-3.5 grid gap-2">
-                {pillarEntries.map(([label, value]) => (
-                  <div key={label}>
-                    <div className="flex justify-between mb-[3px]">
-                      <span className="font-mono text-[9px] text-ink-faint tracking-[0.06em]">{String(label).toUpperCase()}</span>
-                      <span className="font-mono text-[9px] text-ink-soft">{value}</span>
+              {pillarEntries.length > 0 && (
+                <div className="mt-3.5 grid gap-2">
+                  {pillarEntries.map(([label, value]) => (
+                    <div key={label}>
+                      <div className="flex justify-between mb-[3px]">
+                        <span className="font-mono text-[9px] text-ink-faint tracking-[0.06em]">{String(label).toUpperCase()}</span>
+                        <span className="font-mono text-[9px] text-ink-soft">{value}</span>
+                      </div>
+                      <Progress
+                        value={Math.min(100, Math.max(0, Number(value) || 0))}
+                        className="h-1.5 rounded-full"
+                        style={{ background: 'var(--line)' }}
+                      />
                     </div>
-                    <div className="sbar-track w-full">
-                      <div className="sbar-fill" style={{ width: `${Math.min(100, Math.max(0, Number(value) || 0))}%`, background: 'var(--accent)', opacity: 0.7 }} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+              <div className="mt-3">
+                <Progress
+                  value={merged.fundScore}
+                  className="h-2 rounded-full"
+                />
               </div>
-            )}
-            <div className="mt-3">
-              <SBar v={merged.fundScore} color="var(--accent)" />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div>
-            <div className="flex items-center mb-2.5">
-              <p className="text-[13px] font-semibold">Teknikal</p>
-              <span className="ml-auto font-mono text-[11px] text-up">Skor: {merged.techScore}/100</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
+          <Card>
+            <CardHeader className="px-5 pt-5 pb-2">
+              <CardTitle className="text-[13px] font-semibold text-foreground">
+                Teknikal
+              </CardTitle>
+              <CardDescription className="text-[11px] font-mono text-up">
+                Skor: {merged.techScore}/100
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-5 flex flex-col gap-1.5">
               <Metric label="Tren (EMA D+W)" value={t.trend || null} good={t.trend === 'Uptrend'} />
               <Metric label="EMA Cross" value={t.ema_cross || null} good={t.ema_cross === 'Bullish' || t.ema_cross === 'Golden Cross'} />
               <Metric label="EMA Daily 21/34/55" value={emaDaily} good={emaBull()} />
@@ -247,18 +276,18 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
               <Metric label="RSI (14 hari)" value={t.rsi != null ? `${t.rsi}` : null} good={t.rsi > 40 && t.rsi < 70} />
               <Metric label="MACD" value={t.macd || null} good={t.macd === 'Bullish'} />
               <Metric label="Rasio Volume" value={t.vol != null ? `${t.vol}x` : null} good={t.vol >= 1} />
-            </div>
-            <div className="mt-3">
-              <SBar v={merged.techScore} color="var(--up)" />
-            </div>
-          </div>
+              <div className="mt-3">
+                <Progress value={merged.techScore} className="h-2 rounded-full" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Seasonality */}
         {seasonality?.monthly?.length > 0 && (
-          <div className="mt-5 border bg-elevated p-4">
+          <Card className="mt-5 border bg-elevated p-4">
             <div className="flex items-center justify-between gap-3 mb-2.5">
-              <p className="text-[13px] font-semibold">Seasonality</p>
+              <p className="text-[13px] font-semibold text-foreground">Seasonality</p>
               <span className="font-mono text-[10px] text-ink-faint">
                 {seasonality.last_date ? `update ${seasonality.last_date}` : 'historical pattern'}
               </span>
@@ -283,14 +312,14 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
                       <div className="font-display text-[18px] font-bold leading-none" style={{ color: positiveMonth ? 'var(--up)' : 'var(--down)' }}>
                         {m.avg_return > 0 ? '+' : ''}{m.avg_return.toFixed(2)}%
                       </div>
-                      <div className="mt-1.5 h-[3px] bg-line">
+                      <div className="mt-1.5 h-[3px] bg-line rounded-full overflow-hidden">
                         <div style={{ width: `${Math.min(100, Math.max(10, 50 + m.avg_return * 6))}%`, height: '100%', background: positiveMonth ? 'var(--up)' : 'var(--down)' }} />
                       </div>
                     </div>
                   )
                 })}
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Composite score banner */}
@@ -310,7 +339,7 @@ export default function StockDetailPage({ stock, onClose, onToggleFav, favorites
           </div>
           <div className="font-display text-[56px] font-extrabold text-accent leading-none">{merged.composite}</div>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

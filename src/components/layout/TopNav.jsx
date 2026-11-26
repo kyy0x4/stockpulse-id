@@ -9,6 +9,12 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
+import {
+  Avatar, AvatarFallback,
+} from '@/components/ui/avatar'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useMarketIndex } from '../../hooks/useMarketIndex'
 import { api } from '../../api/client'
 import { supabase } from '../../api/supabase'
@@ -183,28 +189,38 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
             <span>{positive ? '+' : ''}{(spx?.change ?? 0).toFixed(2)}%</span>
           </div>
 
-          <button className="icon-btn" onClick={toggleTheme} aria-label="Ganti tema">
-            <ThemeIcon size={16} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="icon-btn" onClick={toggleTheme} aria-label="Ganti tema">
+                <ThemeIcon size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Ganti tema</TooltipContent>
+          </Tooltip>
 
           <div ref={panelRef} style={{ position: 'relative' }}>
-            <button
-              className="icon-btn"
-              onClick={() => { if (!open) markSeen(); setOpen((v) => !v) }}
-              aria-label="Notifikasi"
-            >
-              <Bell size={16} />
-              {unread > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--down)', color: '#fff', borderRadius: 99,
-                  fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, padding: '0 4px',
-                }}>
-                  {unread > 9 ? '9+' : unread}
-                </span>
-              )}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="icon-btn"
+                  onClick={() => { if (!open) markSeen(); setOpen((v) => !v) }}
+                  aria-label="Notifikasi"
+                >
+                  <Bell size={16} />
+                  {unread > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'var(--down)', color: '#fff', borderRadius: 99,
+                      fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, padding: '0 4px',
+                    }}>
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Notifikasi</TooltipContent>
+            </Tooltip>
 
             <AnimatePresence>
               {open && (
@@ -268,9 +284,11 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
                   title={user.email}
                   className="flex items-center gap-2 h-[34px] px-2 pr-3 rounded-lg border bg-secondary text-foreground text-xs font-medium cursor-pointer"
                 >
-                  <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-accent text-primary-foreground text-[13px] font-bold">
-                    {(user.name || user.email || '?').charAt(0).toUpperCase()}
-                  </span>
+                  <Avatar className="h-[26px] w-[26px] rounded-lg bg-accent">
+                    <AvatarFallback className="text-primary-foreground text-[13px] font-bold bg-accent">
+                      {(user.name || user.email || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <span className="hidden md:block max-w-[110px] truncate">{user.name || user.email}</span>
                 </button>
               </DropdownMenuTrigger>

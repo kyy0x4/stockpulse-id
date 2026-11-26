@@ -3,16 +3,23 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { accountApi } from '../api/auth'
-import { Bell, Plus, Trash2 } from 'lucide-react'
+import { Bell, Plus, Trash2, X } from 'lucide-react'
 import { api } from '../api/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog'
 
 const ALERT_TYPES = [
   { value: 'price_above', label: 'Harga di atas' },
@@ -29,6 +36,7 @@ export default function AlertsPage() {
   const [tickers, setTickers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const [form, setForm] = useState({
     ticker: '',
@@ -53,7 +61,7 @@ export default function AlertsPage() {
     return () => { alive = false }
   }, [])
 
-  const canAdd = alerts.length < limit
+  const canAdd = limit === null || alerts.length < limit
 
   const save = async () => {
     if (!form.ticker) return
@@ -77,22 +85,20 @@ export default function AlertsPage() {
   const remove = async (id) => {
     await accountApi.removeAlert(id).catch(() => {})
     setAlerts(alerts.filter((a) => a.id !== id))
+    toast.success('Alert dihapus')
   }
 
   return (
-    <div className="page-wrap" style={{ paddingTop: 8, paddingBottom: 40 }}>
-      <div style={{ maxWidth: 880, margin: '0 auto' }}>
+    <div className="page-wrap pt-2 pb-10">
+      <div className="max-w-[880px] mx-auto">
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 20, flexWrap: 'wrap', gap: 12
-        }}>
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
-            <h1 className="font-display text-[24px] font-extrabold text-foreground" style={{ margin: 0 }}>
-              <Bell size={22} className="text-accent" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+            <h1 className="font-display text-[24px] font-extrabold text-foreground m-0 flex items-center gap-2">
+              <Bell size={22} className="text-accent" />
               Alerts
             </h1>
-            <p className="text-xs text-muted-foreground" style={{ marginTop: 4 }}>
+            <p className="text-xs text-muted-foreground mt-1">
               {alerts.length} dari {limit === null ? 'unlimited' : limit} alert aktif
               {limit !== null && alerts.length >= limit && (
                 <span className="ml-2 text-hold">(limit tercapai)</span>
@@ -112,8 +118,15 @@ export default function AlertsPage() {
         {showForm && canAdd && (
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border bg-card p-4"
+            className="rounded-xl border bg-card p-4 mb-5"
           >
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-[13px] font-semibold text-foreground">Tambah Alert Baru</Label>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowForm(false)}>
+                <X size={14} />
+              </Button>
+            </div>
+            <Separator className="mb-4" />
             <div className="flex flex-wrap gap-3">
               <div className="flex-1 min-w-[140px] flex flex-col gap-1.5">
                 <Label className="text-xs text-muted-foreground">Ticker</Label>
@@ -179,44 +192,86 @@ export default function AlertsPage() {
           <div className="py-10 text-center text-sm text-muted-foreground">Memuat alert…</div>
         ) : alerts.length === 0 ? (
           <div className="rounded-xl border border-dashed bg-card py-12 text-center">
+            <Bell size={28} className="text-muted-foreground mx-auto mb-3 opacity-40" />
             <p className="text-sm text-muted-foreground">Belum ada alert. Tambahin yang pertama!</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {alerts.map((al) => {
-              const typeLabel = ALERT_TYPES.find((t) => t.value === al.type)?.label || al.type
-              return (
-                <div
-                  key={al.id}
-                  className="flex items-center gap-3 rounded-lg border bg-card px-3.5 py-3"
-                >
-                  <span className="font-mono text-[13px] font-bold text-accent min-w-[70px]">
-                    {al.ticker}
-                  </span>
-                  <span className="text-[13px] text-ink-soft flex-1">
-                    {typeLabel}
-                    {al.value != null && (
-                      <span className="ml-1.5 font-mono text-foreground">${al.value}</span>
-                    )}
-                  </span>
-                  {al.triggered && (
-                    <Badge tone="green">Tembus</Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => remove(al.id)}
-                    aria-label="Hapus alert"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              )
-            })}
+          <div className="rounded-xl border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-4 font-mono text-[10px] tracking-wider text-muted-foreground">TICKER</TableHead>
+                  <TableHead className="font-mono text-[10px] tracking-wider text-muted-foreground">JENIS</TableHead>
+                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">TARGET</TableHead>
+                  <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">STATUS</TableHead>
+                  <TableHead className="text-right pr-4 w-[40px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {alerts.map((al) => {
+                  const typeLabel = ALERT_TYPES.find((t) => t.value === al.type)?.label || al.type
+                  const isPrice = al.type.startsWith('price_')
+                  return (
+                    <TableRow key={al.id}>
+                      <TableCell className="pl-4 font-mono text-[13px] font-bold text-accent">
+                        {al.ticker}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          tone={al.type === 'signal_buy' ? 'green' : al.type === 'signal_sell' ? 'red' : 'blue'}
+                        >
+                          {typeLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-foreground">
+                        {isPrice && al.value != null ? `$${al.value}` : '—'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {al.triggered ? (
+                          <Badge tone="green">Tembus</Badge>
+                        ) : (
+                          <Badge variant="outline">Menunggu</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setConfirmDelete(al.id)}
+                          aria-label="Hapus alert"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
+
+      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus alert?</DialogTitle>
+            <DialogDescription>
+              Alert akan dihapus permanen dan tidak bisa dikembalikan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Batal</Button>
+            <Button
+              variant="destructive"
+              onClick={() => { remove(confirmDelete); setConfirmDelete(null) }}
+            >
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

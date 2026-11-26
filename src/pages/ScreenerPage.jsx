@@ -7,6 +7,18 @@ import { Spark, pct, viewStock, cap, vol, fmtPrice, kindLabel } from '../compone
 import StockLogo from '../components/ui/StockLogo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Progress } from '@/components/ui/progress'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
 
 const KINDS = [
   { id: 'all', label: 'Semua' },
@@ -20,26 +32,21 @@ const SIGNALS = [
   { id: 'Hold', label: 'Hold' },
   { id: 'Sell', label: 'Sell' },
 ]
-const MIN_SCORES = [
-  { v: 0, label: 'Semua' },
-  { v: 60, label: '≥ 60' },
-  { v: 75, label: '≥ 75' },
-]
 
 const COLUMNS = [
-  { k: 'ticker', label: 'Aset', cls: 'l sticky-col' },
-  { k: 'price', label: 'Harga', cls: 'r' },
-  { k: 'changePct', label: '24h %', cls: 'r' },
-  { k: 'volume', label: 'Volume', cls: 'r' },
-  { k: 'mktCap', label: 'Kap.', cls: 'r' },
-  { k: 'sector', label: 'Sektor', cls: 'l' },
-  { k: 'pe', label: 'P/E', cls: 'r' },
-  { k: 'roe', label: 'ROE%', cls: 'r' },
-  { k: 'growth', label: 'Growth', cls: 'r' },
-  { k: 'rsi', label: 'RSI', cls: 'c' },
-  { k: 'trend', label: 'Trend', cls: 'c' },
-  { k: 'composite', label: 'Skor', cls: 'c' },
-  { k: 'signal', label: 'Signal', cls: 'c' },
+  { k: 'ticker', label: 'Aset', cls: 'text-left' },
+  { k: 'price', label: 'Harga', cls: 'text-right' },
+  { k: 'changePct', label: '24h %', cls: 'text-right' },
+  { k: 'volume', label: 'Volume', cls: 'text-right' },
+  { k: 'mktCap', label: 'Kap.', cls: 'text-right' },
+  { k: 'sector', label: 'Sektor', cls: 'text-left' },
+  { k: 'pe', label: 'P/E', cls: 'text-right' },
+  { k: 'roe', label: 'ROE%', cls: 'text-right' },
+  { k: 'growth', label: 'Growth', cls: 'text-right' },
+  { k: 'rsi', label: 'RSI', cls: 'text-center' },
+  { k: 'trend', label: 'Trend', cls: 'text-center' },
+  { k: 'composite', label: 'Skor', cls: 'text-center' },
+  { k: 'signal', label: 'Signal', cls: 'text-center' },
 ]
 
 export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [], stocks = [] }) {
@@ -129,7 +136,7 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
           <h1 className="page-head-title">Asset Screener</h1>
           <p className="page-head-sub">Filter, urutkan, dan analisa {stats.n} aset dengan skor fundamental + teknikal.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <Badge tone="green" dot>Live</Badge>
           <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download size={14} /> Export CSV
@@ -146,151 +153,189 @@ export default function ScreenerPage({ onSelectStock, onToggleFav, favorites = [
       </div>
 
       {/* Kind tabs */}
-      <div className="tabstrip">
-        {KINDS.map((k) => (
-          <button key={k.id} className={`tabstrip-tab ${kind === k.id ? 'active' : ''}`} onClick={() => setKind(k.id)}>
-            {k.label}
-            <span className="ml-1.5 font-mono text-[10px] text-ink-faint">
-              {k.id === 'all' ? data.length : data.filter((s) => s.kind === k.id).length}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Tabs value={kind} onValueChange={setKind} className="w-full">
+        <TabsList className="h-9 w-full sm:w-fit">
+          {KINDS.map((k) => (
+            <TabsTrigger key={k.id} value={k.id} className="text-[13px] gap-1.5">
+              {k.label}
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {k.id === 'all' ? data.length : data.filter((s) => s.kind === k.id).length}
+              </span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span className="hide-sm font-mono text-[11px] text-ink-faint" style={{ marginRight: 2 }}>SEKTOR</span>
-          {sectors.map((s) => (
-            <button
-              key={s}
-              className={`pill ${sector === s ? 'active' : ''}`}
-              onClick={() => setSector(s)}
-              style={{ height: 25, fontSize: 11.5 }}
-            >
-              {s === 'All' ? 'Semua' : s}
-            </button>
-          ))}
+      <div className="flex flex-wrap gap-3 items-center my-4">
+        <div className="flex gap-2 items-center flex-wrap">
+          <span className="font-mono text-[11px] text-ink-faint">SEKTOR</span>
+          <Select value={sector} onValueChange={setSector}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sectors.map((s) => (
+                <SelectItem key={s} value={s}>{s === 'All' ? 'Semua' : s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sig} onValueChange={setSig}>
+            <SelectTrigger className="w-[110px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SIGNALS.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div className="seg">
-            {SIGNALS.map((s) => (
-              <button key={s.id} className={`seg-item ${sig === s.id ? 'active' : ''}`} onClick={() => setSig(s.id)}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className="seg">
-            {MIN_SCORES.map((m) => (
-              <button key={m.v} className={`seg-item ${minScore === m.v ? 'active' : ''}`} onClick={() => setMinScore(m.v)}>
-                {m.label}
-              </button>
-            ))}
-          </div>
+        <div className="ml-auto flex items-center gap-3 min-w-[220px]">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-[11px] font-mono text-ink-faint">SKOR MIN</span>
+            </TooltipTrigger>
+            <TooltipContent>Skrining aset dengan skor composite minimal</TooltipContent>
+          </Tooltip>
+          <Slider
+            value={[minScore]}
+            onValueChange={(v) => setMinScore(v[0])}
+            max={100}
+            step={5}
+            className="w-[140px]"
+          />
+          <span className="font-mono text-[11px] text-foreground w-[30px]">
+            {minScore === 0 ? '—' : `≥ ${minScore}`}
+          </span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="table-shell">
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="l sticky-col" style={{ minWidth: 210 }}>
-                  <button
-                    onClick={() => handleSort('ticker')}
-                    className={`inline-flex items-center gap-1 bg-transparent border-none cursor-pointer ${sortK === 'ticker' ? 'sorted' : ''}`}
-                    style={{ color: 'inherit', font: 'inherit' }}
-                  >
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead
+                  className={`pl-4 text-left font-mono text-[10px] tracking-wider text-muted-foreground min-w-[210px] ${sortK === 'ticker' ? 'text-accent' : ''}`}
+                  onClick={() => handleSort('ticker')}
+                >
+                  <span className="inline-flex items-center gap-1 cursor-pointer">
                     Aset <SortIcon active={sortK === 'ticker'} dir={sortD} />
-                  </button>
-                </th>
+                  </span>
+                </TableHead>
                 {COLUMNS.slice(1).map((c) => (
-                  <th key={c.k} className={`${c.cls} ${sortK === c.k ? 'sorted' : ''}`} onClick={() => handleSort(c.k)}>
-                    <span className="inline-flex items-center gap-1">
+                  <TableHead
+                    key={c.k}
+                    className={`font-mono text-[10px] tracking-wider text-muted-foreground ${c.cls} ${sortK === c.k ? 'text-accent' : ''}`}
+                    onClick={() => handleSort(c.k)}
+                  >
+                    <span className="inline-flex items-center gap-1 cursor-pointer">
                       {c.label} <SortIcon active={sortK === c.k} dir={sortD} />
                     </span>
-                  </th>
+                  </TableHead>
                 ))}
-                <th className="c" style={{ width: 44 }} />
-              </tr>
-            </thead>
-            <tbody>
+                <TableHead className="text-center w-[44px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((s, i) => {
                 const isFav = favorites.includes(s.ticker)
                 const up = (s.changePct ?? 0) >= 0
                 return (
-                  <tr key={s.ticker} onClick={() => onSelectStock?.(s)}>
-                    <td className="l sticky-col">
-                      <div className="cell-ticker">
-                        <span className="font-mono text-[11px] text-ink-faint w-[18px] text-right">{i + 1}</span>
+                  <TableRow
+                    key={s.ticker}
+                    className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                    onClick={() => onSelectStock?.(s)}
+                  >
+                    <TableCell className="pl-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-mono text-[10px] text-ink-faint w-[18px] text-right">{i + 1}</span>
                         <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
-                        <div style={{ minWidth: 0 }}>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="cell-sym">{s.ticker}</span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0">
+                            <span className="text-[13px] font-bold text-foreground">{s.ticker}</span>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
                               {s.kind === 'crypto' ? 'KRP' : s.kind === 'etf' ? 'ETF' : 'US'}
                             </Badge>
                           </div>
-                          <div className="cell-name">{s.name}</div>
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[140px]">{s.name}</div>
                         </div>
                       </div>
-                    </td>
+                    </TableCell>
 
-                    <td className="num t-strong">{fmtPrice(s.price, s.kind)}</td>
+                    <TableCell className="text-right font-mono text-[13px] font-semibold text-foreground">
+                      {fmtPrice(s.price, s.kind)}
+                    </TableCell>
 
-                    <td className="num font-semibold" style={{ color: up ? 'var(--up)' : 'var(--down)' }}>
-                      <span className="inline-flex items-center gap-[3px] justify-end">
-                        {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    <TableCell className="text-right font-mono text-[12px] font-semibold" style={{ color: up ? 'var(--up)' : 'var(--down)' }}>
+                      <span className="inline-flex items-center gap-1 justify-end">
+                        {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                         {pct(s.changePct)}
                       </span>
-                    </td>
+                    </TableCell>
 
-                    <td className="num t-soft">{vol(s.volume) ?? '—'}</td>
-                    <td className="num t-soft">{cap(s.mktCap) ?? '—'}</td>
-                    <td className="l">
-                      <Badge variant="secondary" className="capitalize">{s.sector}</Badge>
-                    </td>
-                    <td className="num t-soft">{s.pe != null ? `${Number(s.pe).toFixed(1)}x` : '—'}</td>
-                    <td className="num t-soft">{s.roe != null ? `${Number(s.roe).toFixed(1)}%` : '—'}</td>
-                    <td className="num" style={{ color: s.growth != null && s.growth > 10 ? 'var(--up)' : 'var(--text2)' }}>
+                    <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{vol(s.volume) ?? '—'}</TableCell>
+                    <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{cap(s.mktCap) ?? '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize text-[11px]">{s.sector}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-[12px] text-muted-foreground">
+                      {s.pe != null ? `${Number(s.pe).toFixed(1)}x` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-[12px] text-muted-foreground">
+                      {s.roe != null ? `${Number(s.roe).toFixed(1)}%` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-[12px]" style={{ color: s.growth != null && s.growth > 10 ? 'var(--up)' : 'var(--text2)' }}>
                       {s.growth != null ? `${Number(s.growth).toFixed(1)}%` : '—'}
-                    </td>
-                    <td className="c num font-medium" style={{ color: rsiColor(s.rsi) }}>{s.rsi != null ? Number(s.rsi).toFixed(0) : '—'}</td>
-                    <td className="c">
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-[12px] font-medium" style={{ color: rsiColor(s.rsi) }}>
+                      {s.rsi != null ? Number(s.rsi).toFixed(0) : '—'}
+                    </TableCell>
+                    <TableCell className="text-center">
                       {s.trend ? (
-                        <Badge tone={s.trend === 'Uptrend' ? 'green' : s.trend === 'Downtrend' ? 'red' : 'amber'}>
+                        <Badge tone={s.trend === 'Uptrend' ? 'green' : s.trend === 'Downtrend' ? 'red' : 'amber'} className="text-[11px]">
                           {s.trend}
                         </Badge>
                       ) : '—'}
-                    </td>
-                    <td className="c">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <ScoreCell value={s.composite ?? 0} />
-                    </td>
-                    <td className="c">
-                      <Badge tone={s.signal === 'Buy' ? 'green' : s.signal === 'Sell' ? 'red' : 'amber'} dot>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        tone={s.signal === 'Buy' ? 'green' : s.signal === 'Sell' ? 'red' : 'amber'}
+                        dot
+                        className="text-[11px]"
+                      >
                         {s.signal}
                       </Badge>
-                    </td>
-                    <td className="c">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
-                        className="border-none bg-transparent cursor-pointer p-1 leading-none"
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 border-0 bg-transparent cursor-pointer"
                         style={{ color: isFav ? 'var(--accent)' : 'var(--text3)' }}
+                        onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
                         aria-label="Watchlist"
                       >
                         <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
 
           {rows.length === 0 && (
-            <div className="empty-state">— Tidak ada aset yang cocok dengan filter —</div>
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Tidak ada aset yang cocok dengan filter
+            </div>
           )}
         </div>
       </div>
@@ -320,12 +365,15 @@ function rsiColor(rsi) {
 function ScoreCell({ value }) {
   const color = value >= 80 ? 'var(--up)' : value >= 60 ? 'var(--hold)' : 'var(--down)'
   return (
-    <div className="inline-flex items-center gap-2 justify-end min-w-[84px]">
-      <div className="sbar-track w-[44px]">
-        <div className="sbar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
-      </div>
-      <span className="num font-semibold w-[22px] text-right" style={{ color }}>{value}</span>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="inline-flex items-center gap-2 justify-end min-w-[84px]">
+          <Progress value={Math.max(0, Math.min(100, value))} className="w-[44px] h-1.5 rounded-full" />
+          <span className="font-mono text-[12px] font-semibold w-[22px] text-right" style={{ color }}>{value}</span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>Skor composite {value}/100</TooltipContent>
+    </Tooltip>
   )
 }
 
