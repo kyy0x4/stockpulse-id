@@ -1,8 +1,20 @@
 import { useMemo } from 'react'
 import { useMarketIndex } from '../hooks/useMarketIndex'
-import { Star, TrendingUp, Layers, Target, Flame, Trophy } from 'lucide-react'
+import { Star, TrendingUp, TrendingDown, Layers, Target, Flame, Trophy } from 'lucide-react'
 import { Spark, pct, cap, fmtPrice, viewStock } from '../components/ui/DashboardComponents'
 import StockLogo from '../components/ui/StockLogo'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import {
+  Card, CardHeader, CardTitle, CardDescription, CardContent,
+} from '@/components/ui/card'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function DashboardPage({ onSelectStock, onToggleFav, favorites = [], stocks = [] }) {
   const { index: spx } = useMarketIndex('SPX')
@@ -43,7 +55,9 @@ export default function DashboardPage({ onSelectStock, onToggleFav, favorites = 
           <h1 className="page-head-title">Market Dashboard</h1>
           <p className="page-head-sub">Ringkasan pasar dan kandidat terkuat berdasarkan skor composite.</p>
         </div>
-        <span className="tag tag-green tag-dot">Live</span>
+        <div className="flex gap-2 items-center">
+          <Badge tone="green" dot>Live</Badge>
+        </div>
       </div>
 
       <div className="stat-grid">
@@ -65,116 +79,178 @@ export default function DashboardPage({ onSelectStock, onToggleFav, favorites = 
         <StatCard label="Sinyal Buy" value={buys.length} sub={`rata-rata skor ${avgScore}`} icon={<Target size={13} />} accent="var(--accent)" valueColor="var(--up)" />
       </div>
 
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.9fr) minmax(0, 1fr)' }} className="dash-grid">
+      <div className="dash-grid" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.9fr) minmax(0, 1fr)' }}>
         {/* Top composite table */}
-        <div className="table-shell">
-          <div className="cg-card-head">
-            <Trophy size={16} style={{ color: 'var(--accent)' }} />
-            <div>
-              <div className="cg-card-title">Rekomendasi Teratas</div>
-              <div className="cg-card-sub">Skor composite tertinggi hari ini</div>
+        <Card className="overflow-hidden">
+          <CardHeader className="px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-accent-dim border border-accent-line flex items-center justify-center">
+                <Trophy size={15} className="text-accent" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-[14px] font-bold text-foreground">Rekomendasi Teratas</CardTitle>
+                <CardDescription>Skor composite tertinggi hari ini</CardDescription>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono">{recs.length} aset</Badge>
             </div>
-            <span className="tag tag-accent" style={{ marginLeft: 'auto' }}>{recs.length} aset</span>
-          </div>
-          <div className="table-scroll" style={{ maxHeight: 'none' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="l dash-asset-col">Aset</th>
-                  <th>Harga</th>
-                  <th>24h %</th>
-                  <th className="hide-sm">Kap.</th>
-                  <th className="c hide-sm">Skor</th>
-                  <th className="c hide-sm">Signal</th>
-                  <th style={{ width: 44 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {recs.map((s) => {
-                  const isFav = favorites.includes(s.ticker)
-                  const up = (s.changePct ?? 0) >= 0
-                  return (
-                    <tr key={s.ticker} onClick={() => onSelectStock?.(s)}>
-                      <td className="l">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span className="hide-sm" style={{ display: 'inline-flex' }}>
-                            <Spark data={s.sparkline} up={up} w={40} h={20} />
-                          </span>
-                          <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
-                          <div style={{ minWidth: 0 }}>
-                            <div className="cell-sym">{s.ticker}</div>
-                            <div className="cell-name">{s.name}</div>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-5 min-w-[220px] font-mono text-[10px] tracking-wider text-muted-foreground">ASET</TableHead>
+                    <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">HARGA</TableHead>
+                    <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">24H %</TableHead>
+                    <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">KAP.</TableHead>
+                    <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">SKOR</TableHead>
+                    <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">SIGNAL</TableHead>
+                    <TableHead className="text-right pr-4 w-[40px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recs.map((s) => {
+                    const isFav = favorites.includes(s.ticker)
+                    const up = (s.changePct ?? 0) >= 0
+                    return (
+                      <TableRow
+                        key={s.ticker}
+                        className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                        onClick={() => onSelectStock?.(s)}
+                      >
+                        <TableCell className="pl-5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="inline-flex">
+                              <Spark data={s.sparkline} up={up} w={40} h={20} />
+                            </span>
+                            <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
+                            <div className="min-w-0">
+                              <div className="text-[13px] font-bold text-foreground">{s.ticker}</div>
+                              <div className="text-[11px] text-muted-foreground truncate max-w-[120px]">{s.name}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="num t-strong">{fmtPrice(s.price, s.kind)}</td>
-                      <td className="num" style={{ color: up ? 'var(--up)' : 'var(--down)', fontWeight: 600 }}>{pct(s.changePct)}</td>
-                      <td className="num t-soft hide-sm">{cap(s.mktCap) ?? '—'}</td>
-                      <td className="c hide-sm"><ScoreCell value={s.composite} /></td>
-                      <td className="c hide-sm">
-                        <span className={`tag ${s.signal === 'Buy' ? 'tag-green' : s.signal === 'Sell' ? 'tag-red' : 'tag-amber'} tag-dot`}>{s.signal}</span>
-                      </td>
-                      <td className="c">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: isFav ? 'var(--accent)' : 'var(--text3)', padding: 4, lineHeight: 0 }}
-                          aria-label="Watchlist"
-                        >
-                          <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            {recs.length === 0 && <div className="empty-state">— Belum ada data —</div>}
-          </div>
-        </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-[13px] font-semibold text-foreground">
+                          {fmtPrice(s.price, s.kind)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-[12px] font-semibold" style={{ color: up ? 'var(--up)' : 'var(--down)' }}>
+                          <span className="inline-flex items-center gap-1">
+                            {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                            {pct(s.changePct)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{cap(s.mktCap) ?? '—'}</TableCell>
+                        <TableCell className="text-center">
+                          <ScoreCell value={s.composite} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            tone={s.signal === 'Buy' ? 'green' : s.signal === 'Sell' ? 'red' : 'amber'}
+                            dot
+                            className="text-[11px]"
+                          >
+                            {s.signal}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-4">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 border-0 bg-transparent"
+                                style={{ color: isFav ? 'var(--accent)' : 'var(--text3)' }}
+                                onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
+                              >
+                                <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isFav ? 'Hapus dari watchlist' : 'Tambah ke watchlist'}</TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+              {recs.length === 0 && (
+                <div className="py-8 text-center text-sm text-muted-foreground">Belum ada data</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Side panels */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="cg-card">
-            <div className="cg-card-head" style={{ padding: '13px 16px' }}>
-              <Layers size={15} style={{ color: 'var(--accent)' }} />
-              <div className="cg-card-title">Sektor Terkuat</div>
-            </div>
-            <div style={{ padding: '6px 16px 14px' }}>
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader className="px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-accent-dim border border-accent-line flex items-center justify-center">
+                  <Layers size={15} className="text-accent" />
+                </div>
+                <CardTitle className="text-[14px] font-bold text-foreground">Sektor Terkuat</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
               {bestSector.map((r, i) => (
-                <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)', width: 16 }}>{String(i + 1).padStart(2, '0')}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                    <div className="sbar-track" style={{ marginTop: 5 }}>
-                      <div className="sbar-fill" style={{ width: `${r.avg}%`, background: 'var(--accent)' }} />
-                    </div>
+                <div
+                  key={r.name}
+                  className="flex items-center gap-2.5 py-2.5"
+                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
+                >
+                  <span className="font-mono text-[10px] text-muted-foreground w-[18px]">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12.5px] text-foreground font-medium truncate">{r.name}</div>
+                    <Progress
+                      value={r.avg}
+                      className="mt-1.5 h-1.5 rounded-full"
+                    />
                   </div>
-                  <span className="num" style={{ color: 'var(--accent)', fontSize: 12, width: 26, textAlign: 'right' }}>{r.avg}</span>
+                  <span className="font-mono text-[12px] font-semibold text-accent w-[28px] text-right">
+                    {r.avg}
+                  </span>
                 </div>
               ))}
-              {bestSector.length === 0 && <div className="empty-state" style={{ padding: 20 }}>— belum ada data —</div>}
-            </div>
-          </div>
+              {bestSector.length === 0 && (
+                <div className="py-5 text-center text-xs text-muted-foreground">Belum ada data</div>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className="cg-card">
-            <div className="cg-card-head" style={{ padding: '13px 16px' }}>
-              <TrendingUp size={15} style={{ color: 'var(--up)' }} />
-              <div className="cg-card-title">Top Gainers</div>
-            </div>
-            <div style={{ padding: '6px 16px 14px' }}>
-              {gainers.map((s) => (
-                <div key={s.ticker} onClick={() => onSelectStock?.(s)} className="hoverable" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', margin: '0 -6px', borderRadius: 8, cursor: 'pointer' }}>
-                  <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="cell-sym">{s.ticker}</div>
-                    <div className="cell-name">{s.sector}</div>
-                  </div>
-                  <span className="num" style={{ color: 'var(--up)', fontWeight: 600, fontSize: 12.5 }}>{pct(s.changePct)}</span>
+          <Card>
+            <CardHeader className="px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-up-dim border border-up-line flex items-center justify-center">
+                  <TrendingUp size={15} className="text-up" />
                 </div>
-              ))}
-              {gainers.length === 0 && <div className="empty-state" style={{ padding: 20 }}>— belum ada gainer —</div>}
-            </div>
-          </div>
+                <CardTitle className="text-[14px] font-bold text-foreground">Top Gainers</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <div className="flex flex-col gap-1">
+                {gainers.map((s) => (
+                  <Button
+                    key={s.ticker}
+                    variant="ghost"
+                    className="justify-start h-auto py-2 px-2.5 rounded-lg w-full"
+                    onClick={() => onSelectStock?.(s)}
+                  >
+                    <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-[13px] font-bold text-foreground">{s.ticker}</div>
+                      <div className="text-[11px] text-muted-foreground">{s.sector}</div>
+                    </div>
+                    <span className="font-mono text-[12.5px] font-semibold text-up">{pct(s.changePct)}</span>
+                  </Button>
+                ))}
+                {gainers.length === 0 && (
+                  <div className="py-5 text-center text-xs text-muted-foreground">Belum ada gainer</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -184,11 +260,9 @@ export default function DashboardPage({ onSelectStock, onToggleFav, favorites = 
 function ScoreCell({ value }) {
   const color = value >= 80 ? 'var(--up)' : value >= 60 ? 'var(--hold)' : 'var(--down)'
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', minWidth: 78 }}>
-      <div className="sbar-track" style={{ width: 40 }}>
-        <div className="sbar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
-      </div>
-      <span className="num" style={{ color, fontWeight: 600, width: 22, textAlign: 'right' }}>{value}</span>
+    <div className="inline-flex items-center gap-2 justify-end min-w-[78px]">
+      <Progress value={Math.max(0, Math.min(100, value))} className="w-[40px] h-1.5 rounded-full" />
+      <span className="font-mono text-[12px] font-semibold w-[22px] text-right" style={{ color }}>{value}</span>
     </div>
   )
 }

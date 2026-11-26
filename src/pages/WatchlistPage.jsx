@@ -1,16 +1,26 @@
 import { useMemo } from 'react'
 import { PH, pct, viewStock, cap, fmtPrice, kindLabel } from '../components/ui/DashboardComponents'
 import StockLogo from '../components/ui/StockLogo'
-import { Star, X } from 'lucide-react'
+import { Star, X, Plus, TrendingUp, TrendingDown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  Card, CardHeader, CardTitle, CardDescription, CardContent,
+} from '@/components/ui/card'
 
 function ScoreCell({ value, color }) {
   const c = value >= 80 ? 'var(--up)' : value >= 60 ? 'var(--hold)' : 'var(--down)'
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end', minWidth: 74 }}>
-      <div className="sbar-track" style={{ width: 38 }}>
-        <div className="sbar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color || c }} />
-      </div>
-      <span className="num" style={{ color: c, fontWeight: 600, width: 20, textAlign: 'right' }}>{value}</span>
+    <div className="inline-flex items-center gap-1.5 justify-end min-w-[74px]">
+      <Progress value={Math.max(0, Math.min(100, value))} className="w-[38px] h-1.5 rounded-full" />
+      <span className="font-mono text-[12px] font-semibold w-5 text-right" style={{ color: c }}>{value}</span>
     </div>
   )
 }
@@ -34,107 +44,134 @@ export default function WatchlistPage({ onSelectStock, stocks = [], favorites = 
           <div className="stat-sub">aset dipantau</div>
         </div>
         <div className="stat-card" style={{ '--stat-accent': 'var(--up)' }}>
-          <div className="stat-label">Aset Naik</div>
+          <div className="stat-label"><TrendingUp size={12} /> Aset Naik</div>
           <div className="stat-value" style={{ color: 'var(--up)' }}>{up}</div>
           <div className="stat-sub">hari ini</div>
         </div>
         <div className="stat-card" style={{ '--stat-accent': 'var(--down)' }}>
-          <div className="stat-label">Aset Turun</div>
+          <div className="stat-label"><TrendingDown size={12} /> Aset Turun</div>
           <div className="stat-value" style={{ color: 'var(--down)' }}>{down}</div>
           <div className="stat-sub">hari ini</div>
         </div>
       </div>
 
-      <div className="table-shell">
-        <div className="table-scroll" style={{ maxHeight: 'none' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="l" style={{ minWidth: 210 }}>Aset</th>
-                <th>Harga</th>
-                <th>24h %</th>
-                <th>Kap.</th>
-                <th className="c">Fund.</th>
-                <th className="c">Tech.</th>
-                <th className="c">Signal</th>
-                <th style={{ width: 44 }} />
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4 min-w-[210px] font-mono text-[10px] tracking-wider text-muted-foreground">ASET</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">HARGA</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">24H %</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">KAP.</TableHead>
+                <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">FUND.</TableHead>
+                <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">TECH.</TableHead>
+                <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">SIGNAL</TableHead>
+                <TableHead className="text-right pr-4 w-[40px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {watched.map((s) => (
-                <tr key={s.ticker} onClick={() => onSelectStock?.(s)}>
-                  <td className="l">
-                    <div className="cell-ticker">
+                <TableRow
+                  key={s.ticker}
+                  className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                  onClick={() => onSelectStock?.(s)}
+                >
+                  <TableCell className="pl-4">
+                    <div className="flex items-center gap-2.5">
                       <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span className="cell-sym">{s.ticker}</span>
-                          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 4px' }}>
-                            {kindLabel(s.kind)}
-                          </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-bold text-foreground">{s.ticker}</span>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">{kindLabel(s.kind)}</Badge>
                         </div>
-                        <div className="cell-name">{s.name}</div>
+                        <div className="text-[11px] text-muted-foreground truncate max-w-[140px]">{s.name}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="num t-strong">{fmtPrice(s.price, s.kind)}</td>
-                  <td className="num" style={{ color: s.changePct >= 0 ? 'var(--up)' : 'var(--down)', fontWeight: 600 }}>{pct(s.changePct)}</td>
-                  <td className="num t-soft">{cap(s.mktCap) ?? '—'}</td>
-                  <td className="c"><ScoreCell value={s.fundScore} /></td>
-                  <td className="c"><ScoreCell value={s.techScore} color="var(--accent)" /></td>
-                  <td className="c">
-                    <span className={`tag ${s.signal === 'Buy' ? 'tag-green' : s.signal === 'Sell' ? 'tag-red' : 'tag-amber'} tag-dot`}>{s.signal}</span>
-                  </td>
-                  <td className="c">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
-                      className="icon-btn"
-                      style={{ width: 26, height: 26 }}
-                      aria-label={`Hapus ${s.ticker} dari watchlist`}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[13px] font-semibold text-foreground">
+                    {fmtPrice(s.price, s.kind)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[12px] font-semibold" style={{ color: s.changePct >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                    {pct(s.changePct)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{cap(s.mktCap) ?? '—'}</TableCell>
+                  <TableCell className="text-center">
+                    <ScoreCell value={s.fundScore} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <ScoreCell value={s.techScore} color="var(--accent)" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      tone={s.signal === 'Buy' ? 'green' : s.signal === 'Sell' ? 'red' : 'amber'}
+                      dot
+                      className="text-[11px]"
                     >
-                      <X size={13} />
-                    </button>
-                  </td>
-                </tr>
+                      {s.signal}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 border-0 bg-transparent text-muted-foreground hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); onToggleFav?.(s.ticker) }}
+                        >
+                          <X size={13} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Hapus dari watchlist</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
+          {watched.length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Watchlist kosong, tambahkan aset di bawah
+            </div>
+          )}
         </div>
-        {watched.length === 0 && (
-          <div className="empty-state">— Watchlist kosong, tambahkan aset di bawah —</div>
-        )}
-      </div>
+      </Card>
 
-      <div style={{ marginTop: 20 }}>
-        <div style={{ marginBottom: 10 }}>
-          <div className="cg-card-title">Tambah ke Watchlist</div>
-          <div className="cg-card-sub">Klik aset untuk mulai memantau</div>
-        </div>
-        <div className="cg-card" style={{ padding: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
-            {avail.length === 0 && (
-              <div style={{ padding: 16, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text3)' }}>
+      <div className="mt-5">
+        <Card>
+          <CardHeader className="px-5 pt-5 pb-2">
+            <CardTitle className="text-[14px] font-semibold text-foreground">Tambah ke Watchlist</CardTitle>
+            <CardDescription>Klik aset untuk mulai memantau</CardDescription>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            {avail.length === 0 ? (
+              <div className="py-4 text-center font-mono text-[10px] text-muted-foreground tracking-wider">
                 SEMUA ASET SUDAH DI WATCHLIST
               </div>
+            ) : (
+              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                {avail.map((s) => (
+                  <Button
+                    key={s.ticker}
+                    variant="outline"
+                    size="sm"
+                    className="justify-between h-10 text-xs font-mono"
+                    onClick={() => onToggleFav?.(s.ticker)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Plus size={13} className="text-accent" />
+                      <span className="text-foreground font-semibold">{s.ticker}</span>
+                    </span>
+                    <span style={{ color: s.changePct >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                      {pct(s.changePct)}
+                    </span>
+                  </Button>
+                ))}
+              </div>
             )}
-            {avail.map((s) => (
-              <button
-                key={s.ticker}
-                onClick={() => onToggleFav?.(s.ticker)}
-                className="hoverable"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8,
-                  background: 'var(--bg3)', border: '1px solid var(--border)',
-                  padding: '8px 10px', cursor: 'pointer', minHeight: 42, textAlign: 'left',
-                }}
-              >
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>+</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{s.ticker}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: s.changePct >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(s.changePct)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

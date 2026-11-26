@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { PH, viewStock } from '../components/ui/DashboardComponents'
-import { Clock, ExternalLink, TrendingDown, TrendingUp } from 'lucide-react'
+import { Clock, ExternalLink, TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from '@/components/ui/card'
+import {
+  Tabs, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
+import {
+  Progress,
+} from '@/components/ui/progress'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 
 const CATS = [
   { id: 'all', label: 'Semua' },
@@ -18,7 +32,6 @@ const sentOf = (v) => {
   return 'neutral'
 }
 const toneOf = (s) => (s === 'positive' ? 'var(--up)' : s === 'negative' ? 'var(--down)' : 'var(--text3)')
-const toneClass = (s) => (s === 'positive' ? 'tag-green' : s === 'negative' ? 'tag-red' : 'tag-neutral')
 
 function NewsCard({ item, stocks, onOpenStock }) {
   const imp = item?.impact || {}
@@ -27,6 +40,7 @@ function NewsCard({ item, stocks, onOpenStock }) {
   const dirSent = sentOf(imp.direction || item?.sentiment)
   const tone = toneOf(dirSent)
   const relatedTickers = related.slice(0, 5)
+  const sentimentTone = sentiment === 'positive' ? 'green' : sentiment === 'negative' ? 'red' : 'neutral'
 
   const openStock = (ticker) => {
     const found = stocks.find((s) => s.ticker === ticker)
@@ -34,66 +48,76 @@ function NewsCard({ item, stocks, onOpenStock }) {
   }
 
   return (
-    <article className="cg-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span className="chip" style={{ textTransform: 'uppercase' }}>{item.category || 'us'}</span>
-        <span className={`tag ${toneClass(sentiment)}`}>{sentiment.toUpperCase()}</span>
-        <a
-          href={item.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ marginLeft: 'auto', color: 'var(--text3)', display: 'inline-flex' }}
-          aria-label="Buka berita"
-        >
-          <ExternalLink size={12} />
+    <Card>
+      <CardContent className="p-4.5 flex flex-col gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Badge variant="secondary" className="text-[10px] font-mono uppercase">{item.category || 'us'}</Badge>
+          <Badge tone={sentimentTone} className="text-[10px]">{sentiment.toUpperCase()}</Badge>
+          <a
+            href={item.link} target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto text-muted-foreground hover:text-foreground transition-colors inline-flex"
+            aria-label="Buka berita"
+          >
+            <ExternalLink size={12} />
+          </a>
+        </div>
+
+        <a href={item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-foreground no-underline hover:text-accent transition-colors">
+          <h3 className="text-[14px] font-semibold leading-[1.45] tracking-tight m-0">{item.title}</h3>
         </a>
-      </div>
 
-      <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-        <h3 style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.45, letterSpacing: '-0.01em' }}>{item.title}</h3>
-      </a>
+        <div className="rounded-lg border bg-background p-3 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-[9px] tracking-[0.1em] text-muted-foreground">DAMPAK</span>
+            <Badge variant="outline" className="text-[9px] font-mono" style={{ color: tone }}>
+              {String(imp.direction || item.sentiment || 'netral').toUpperCase()}
+            </Badge>
+            <Badge variant="secondary" className="text-[9px]">{imp.scope_label || 'UMUM'}</Badge>
+            {imp.event && <Badge variant="outline" className="text-[9px]">{imp.event}</Badge>}
+            <span className="ml-auto font-mono text-[9px] text-muted-foreground">
+              KEKUATAN {imp.strength ?? 0}%
+            </span>
+          </div>
+          <div className="font-mono text-[10.5px] tracking-wide" style={{ color: tone }}>
+            {String(imp.asset || imp.ihsg || 'netral untuk pasar global').toUpperCase()}
+          </div>
+          <div className="text-[12px] text-ink-soft leading-[1.5]">
+            {imp.market_move || 'Dampaknya terbatas dan selektif.'}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {relatedTickers.length > 0 ? relatedTickers.map((r) => {
+              const dcol = toneOf(sentOf(r.direction))
+              const dTone = r.direction === 'positif' ? 'green' : r.direction === 'negatif' ? 'red' : 'neutral'
+              return (
+                <Tooltip key={r.ticker}>
+                  <TooltipTrigger asChild>
+                    <Badge tone={dTone} className="text-[10px] font-mono gap-1 cursor-pointer" style={{ color: dcol }}>
+                      {r.ticker}
+                      {r.direction === 'positif' && <ArrowUpRight size={10} />}
+                      {r.direction === 'negatif' && <ArrowDownRight size={10} />}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Klik untuk lihat detail {r.ticker}</TooltipContent>
+                </Tooltip>
+              )
+            }) : (
+              <span className="font-mono text-[9px] text-muted-foreground">TIDAK ADA ASET SPESIFIK</span>
+            )}
+          </div>
+        </div>
 
-      <div style={{ marginTop: 12, padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gap: 7 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', letterSpacing: '0.1em' }}>DAMPAK</span>
-          <span className="tag" style={{ color: tone, background: 'var(--bg3)', borderColor: 'var(--border2)' }}>
-            {String(imp.direction || item.sentiment || 'netral').toUpperCase()}
+        <div className="flex items-center justify-between gap-3 mt-auto pt-3 border-t font-mono text-[9.5px] text-muted-foreground">
+          <span>{item.source || 'news feed'}</span>
+          <span className="inline-flex items-center gap-1">
+            <Clock size={10} />
+            {item.published
+              ? new Date(item.published).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+              : ''}
           </span>
-          <span className="chip">{imp.scope_label || 'UMUM'}</span>
-          {imp.event && <span className="chip">{imp.event}</span>}
-          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>KEKUATAN {imp.strength ?? 0}%</span>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.03em', color: tone }}>
-          {String(imp.asset || imp.ihsg || 'netral untuk pasar global').toUpperCase()}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{imp.market_move || 'Dampaknya terbatas dan selektif.'}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {relatedTickers.length > 0 ? relatedTickers.map((r) => {
-            const dcol = toneOf(sentOf(r.direction))
-            return (
-              <button
-                key={r.ticker}
-                onClick={() => openStock(r.ticker)}
-                className="chip"
-                style={{ cursor: 'pointer', color: dcol, borderColor: 'var(--border2)', background: 'var(--bg3)' }}
-              >
-                {r.ticker}{r.direction === 'positif' ? ' ↑' : r.direction === 'negatif' ? ' ↓' : ''}
-              </button>
-            )
-          }) : (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)' }}>TIDAK ADA ASET SPESIFIK</span>
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 'auto', paddingTop: 12, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text3)' }}>
-        <span>{item.source || 'news feed'}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <Clock size={10} />
-          {item.published ? new Date(item.published).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-        </span>
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -133,75 +157,109 @@ export default function NewsImpactPage({ stocks = [], onSelectStock }) {
       .sort((a, b) => b.count - a.count)
   }, [items, stocks])
 
+  const totalMentions = sectors.reduce((a, s) => a + s.count, 0)
+
   return (
     <div className="fade-up">
       <PH eyebrow="News impact · global feeds" title="News Impact" />
 
-      <div className="tabstrip">
-        {CATS.map((c) => (
-          <button key={c.id} className={`tabstrip-tab ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
-            {c.label}
-          </button>
-        ))}
+      <Tabs value={cat} onValueChange={setCat} className="mb-4">
+        <TabsList className="h-9">
+          {CATS.map((c) => (
+            <TabsTrigger key={c.id} value={c.id} className="text-[13px]">{c.label}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <span className="text-xs text-ink-soft">Arah dampak berita ke aset, sektor, dan pasar global.</span>
+        <Badge tone="accent" className="text-[10px]">Impact on asset + market</Badge>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-        <span style={{ fontSize: 12, color: 'var(--text2)' }}>Arah dampak berita ke aset, sektor, dan pasar global.</span>
-        <span className="tag tag-accent">Impact on asset + market</span>
-      </div>
-
-      {loading && <div className="cg-card empty-state">Mengambil analisa berita…</div>}
-      {error && !loading && <div className="cg-card empty-state" style={{ color: 'var(--down)' }}>Berita gagal dimuat: {error}</div>}
+      {loading && (
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Mengambil analisa berita…</CardContent></Card>
+      )}
+      {error && !loading && (
+        <Card><CardContent className="py-10 text-center text-sm text-destructive">Berita gagal dimuat: {error}</CardContent></Card>
+      )}
 
       {!loading && !error && (
         <div className="split-grid">
-          <div style={{ display: 'grid', gap: 14 }}>
+          <div className="flex flex-col gap-3.5">
             {items.slice(0, 12).map((item) => (
               <NewsCard key={item.link} item={item} stocks={stocks} onOpenStock={onSelectStock} />
             ))}
-            {items.length === 0 && <div className="cg-card empty-state">Belum ada berita.</div>}
+            {items.length === 0 && (
+              <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Belum ada berita.</CardContent></Card>
+            )}
           </div>
 
-          <aside style={{ display: 'grid', gap: 14 }}>
-            <div className="cg-card">
-              <div className="cg-card-head">
-                <TrendingUp size={15} style={{ color: 'var(--accent)' }} />
-                <div>
-                  <div className="cg-card-title">Dampak per Sektor</div>
-                  <div className="cg-card-sub">Aset yang muncul di berita</div>
+          <aside className="flex flex-col gap-3.5">
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-up-dim border border-up-line flex items-center justify-center">
+                    <TrendingUp size={15} className="text-up" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-[14px] font-bold text-foreground">Dampak per Sektor</CardTitle>
+                    <CardDescription>{totalMentions} mention total</CardDescription>
+                  </div>
                 </div>
-              </div>
-              <div style={{ padding: '6px 16px 14px' }}>
-                {sectors.length === 0 && <div className="empty-state" style={{ padding: 20 }}>— belum ada data —</div>}
-                {sectors.map((s, i) => (
-                  <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
-                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text3)', whiteSpace: 'nowrap' }}>{s.count} mention</span>
-                    <span className="num" style={{ fontSize: 10, color: 'var(--up)', minWidth: 22, textAlign: 'right' }}>+{s.bull}</span>
-                    <span className="num" style={{ fontSize: 10, color: 'var(--down)', minWidth: 22, textAlign: 'right' }}>−{s.bear}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                {sectors.length === 0 && (
+                  <div className="py-5 text-center text-xs text-muted-foreground">Belum ada data</div>
+                )}
+                <div className="flex flex-col gap-1">
+                  {sectors.map((s, i) => (
+                    <div
+                      key={s.name}
+                      className="flex items-center gap-2 py-2"
+                      style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12.5px] text-foreground font-medium truncate">{s.name}</div>
+                        <Progress
+                          value={totalMentions ? Math.round((s.count / totalMentions) * 100) : 0}
+                          className="mt-1 h-1 rounded-full"
+                        />
+                      </div>
+                      <span className="font-mono text-[9px] text-muted-foreground whitespace-nowrap">
+                        {s.count} mention
+                      </span>
+                      <span className="font-mono text-[10px] text-up min-w-[22px] text-right">+{s.bull}</span>
+                      <span className="font-mono text-[10px] text-down min-w-[22px] text-right">−{s.bear}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="cg-card">
-              <div className="cg-card-head">
-                <TrendingDown size={15} style={{ color: 'var(--text2)' }} />
-                <div className="cg-card-title">Cara Baca</div>
-              </div>
-              <div style={{ padding: '10px 16px 16px', display: 'grid', gap: 10 }}>
-                {[
-                  'Sentimen positif yang kuat biasanya jadi dorongan awal ke aset yang disebut langsung.',
-                  'Jika banyak ticker muncul, dampaknya cenderung melebar ke satu sektor.',
-                  'Fokus halaman ini adalah efek ke pasar, bukan sekadar merangkum isi berita.',
-                ].map((text, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)' }}>{String(i + 1).padStart(2, '0')}</span>
-                    <span>{text}</span>
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-elevated border border-line-strong flex items-center justify-center">
+                    <TrendingDown size={15} className="text-ink-soft" />
                   </div>
-                ))}
-              </div>
-            </div>
+                  <CardTitle className="text-[14px] font-bold text-foreground">Cara Baca</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    'Sentimen positif yang kuat biasanya jadi dorongan awal ke aset yang disebut langsung.',
+                    'Jika banyak ticker muncul, dampaknya cenderung melebar ke satu sektor.',
+                    'Fokus halaman ini adalah efek ke pasar, bukan sekadar merangkum isi berita.',
+                  ].map((text, i) => (
+                    <div key={i} className="flex gap-2.5 text-[12px] text-ink-soft leading-[1.55]">
+                      <span className="font-mono text-[10px] text-accent">{String(i + 1).padStart(2, '0')}</span>
+                      <span>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </aside>
         </div>
       )}

@@ -4,16 +4,18 @@ import {
   User, MessageCircle, Scale, Bell, UserCog,
 } from 'lucide-react'
 import brandLogo from '../../images/Logo MarketIQ Biru-Toska.png'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 const COLS = [
   {
     title: 'Platform',
     links: [
-      { label: 'Dashboard', to: '/', icon: null },
-      { label: 'Screener', to: '/screener', icon: null },
-      { label: 'Market', to: '/market', icon: null },
-      { label: 'Watchlist', to: '/watchlist', icon: null },
-      { label: 'Portfolio', to: '/portfolio', icon: null },
+      { label: 'Dashboard', to: '/' },
+      { label: 'Screener', to: '/screener' },
+      { label: 'Market', to: '/market' },
+      { label: 'Watchlist', to: '/watchlist' },
+      { label: 'Portfolio', to: '/portfolio' },
       { label: 'Profile', to: '/profile', icon: UserCog },
     ]
   },
@@ -21,11 +23,11 @@ const COLS = [
     title: 'Informasi',
     links: [
       { label: 'About Us', to: '/about', icon: User },
-      { label: 'News', to: '/news', icon: null },
-      { label: 'News Impact', to: '/news-impact', icon: null },
-      { label: 'Market Pulse', to: '/market-pulse', icon: null },
+      { label: 'News', to: '/news' },
+      { label: 'News Impact', to: '/news-impact' },
+      { label: 'Market Pulse', to: '/market-pulse' },
       { label: 'Alerts', to: '/alerts', icon: Bell },
-      { label: 'Macro', to: '/macro', icon: null },
+      { label: 'Macro', to: '/macro' },
     ]
   },
   {
@@ -41,59 +43,44 @@ const COLS = [
 
 export default function Footer() {
   return (
-    <footer style={{
-      borderTop: '1px solid var(--border)',
-      background: 'var(--bg)',
-      marginTop: 40,
-      padding: '28px 24px 22px'
-    }}>
-      <div style={{
-        maxWidth: 1200, margin: '0 auto',
-        display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 28
-      }}>
-        {/* Brand + tagline */}
+    <footer className="border-t bg-background mt-10 px-6 py-7">
+      <div
+        className="max-w-[1200px] mx-auto grid gap-7"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}
+      >
+        {/* Brand */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <img src={brandLogo} alt="MARKETIQ" style={{ height: 26, width: 26, objectFit: 'contain' }} />
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 800,
-              color: 'var(--text)', letterSpacing: 0.3
-            }}>
-              MARKET<span style={{ color: 'var(--accent)' }}>IQ</span>
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <img src={brandLogo} alt="MARKETIQ" className="w-[26px] h-[26px] object-contain" />
+            <span className="font-display text-[15px] font-extrabold text-foreground tracking-tight">
+              MARKET<span className="text-accent">IQ</span>
             </span>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 260 }}>
-            Terminal data pasar — saham AS, ETF, dan kripto dalam satu layar. Cepat, transparan, dan dapat diaudit.
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-[260px]">
+            Terminal data pasar — saham AS, ETF, dan kripto dalam satu layar.
+            Cepat, transparan, dan dapat diaudit.
           </p>
 
-          <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
-            <a href="https://github.com/marketiq" target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                height: 30, width: 30, borderRadius: 8,
-                border: '1px solid var(--border)', background: 'var(--bg3)',
-                color: 'var(--text2)', transition: 'all 0.15s',
-                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700
-              }} aria-label="GitHub">
+          <div className="mt-3.5 flex gap-2">
+            <a
+              href="https://github.com/marketiq" target="_blank" rel="noopener noreferrer"
+              className="h-[30px] w-[30px] rounded-lg border bg-elevated flex items-center justify-center font-mono text-[11px] font-bold text-ink-soft hover:text-accent transition-colors"
+              aria-label="GitHub"
+            >
               GH
             </a>
-            <a href="https://x.com/marketiq" target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                height: 30, width: 30, borderRadius: 8,
-                border: '1px solid var(--border)', background: 'var(--bg3)',
-                color: 'var(--text2)',
-                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700
-              }} aria-label="X">
+            <a
+              href="https://x.com/marketiq" target="_blank" rel="noopener noreferrer"
+              className="h-[30px] w-[30px] rounded-lg border bg-elevated flex items-center justify-center font-mono text-[11px] font-bold text-ink-soft hover:text-accent transition-colors"
+              aria-label="X"
+            >
               X
             </a>
-            <a href="mailto:support@marketiq.app"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                height: 30, width: 30, borderRadius: 8,
-                border: '1px solid var(--border)', background: 'var(--bg3)',
-                color: 'var(--text2)'
-              }} aria-label="Email">
+            <a
+              href="mailto:support@marketiq.app"
+              className="h-[30px] w-[30px] rounded-lg border bg-elevated flex items-center justify-center text-ink-soft hover:text-accent transition-colors"
+              aria-label="Email"
+            >
               <Mail size={14} />
             </a>
           </div>
@@ -102,11 +89,10 @@ export default function Footer() {
         {/* Kolom link */}
         {COLS.map((col) => (
           <div key={col.title}>
-            <p style={{
-              fontSize: 11, fontWeight: 700, color: 'var(--text2)',
-              letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12
-            }}>{col.title}</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p className="text-[11px] font-bold text-ink-soft tracking-[0.12em] uppercase mb-3">
+              {col.title}
+            </p>
+            <ul className="list-none p-0 m-0 flex flex-col gap-2">
               {col.links.map((l) => {
                 const Icon = l.icon
                 const isStatic = ['/about', '/contact', '/disclaimer', '/terms', '/privacy', '/alerts', '/profile'].includes(l.to)
@@ -116,15 +102,9 @@ export default function Footer() {
                     <Comp
                       to={isStatic ? l.to : undefined}
                       href={isStatic ? undefined : l.to}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 7,
-                        fontSize: 13, color: 'var(--text3)', textDecoration: 'none',
-                        transition: 'color 0.15s', cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text3)'}
+                      className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-accent transition-colors no-underline cursor-pointer"
                     >
-                      {Icon && <Icon size={13} style={{ opacity: 0.7 }} />}
+                      {Icon && <Icon size={13} className="opacity-70" />}
                       {l.label}
                     </Comp>
                   </li>
@@ -135,21 +115,17 @@ export default function Footer() {
         ))}
       </div>
 
-      {/* Bar bawah */}
-      <div style={{
-        maxWidth: 1200, margin: '22px auto 0',
-        paddingTop: 16, borderTop: '1px solid var(--border)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexWrap: 'wrap', gap: 10
-      }}>
-        <p style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>
+      <Separator className="my-5" />
+
+      <div className="max-w-[1200px] mx-auto flex justify-between items-center flex-wrap gap-2.5">
+        <p className="text-[11px] text-muted-foreground font-mono">
           © 2026 MARKETIQ. Data harga: Yahoo Finance, Binance, CoinGecko. Bukan nasihat keuangan.
         </p>
-        <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text3)' }}>
-          <Link to="/alerts" style={{ textDecoration: 'none' }}>Alerts</Link>
-          <Link to="/disclaimer" style={{ textDecoration: 'none' }}>Disclaimer</Link>
-          <Link to="/terms" style={{ textDecoration: 'none' }}>Terms</Link>
-          <Link to="/privacy" style={{ textDecoration: 'none' }}>Privacy</Link>
+        <div className="flex gap-4 text-[11px] text-muted-foreground">
+          <Link to="/alerts" className="hover:text-foreground no-underline">Alerts</Link>
+          <Link to="/disclaimer" className="hover:text-foreground no-underline">Disclaimer</Link>
+          <Link to="/terms" className="hover:text-foreground no-underline">Terms</Link>
+          <Link to="/privacy" className="hover:text-foreground no-underline">Privacy</Link>
         </div>
       </div>
     </footer>

@@ -3,6 +3,19 @@ import { useMarketIndex } from '../hooks/useMarketIndex'
 import { Spark, pct, viewStock, fmtPrice, PriceChart } from '../components/ui/DashboardComponents'
 import { Activity, Layers, TrendingUp, TrendingDown } from 'lucide-react'
 import StockLogo from '../components/ui/StockLogo'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card, CardHeader, CardTitle, CardDescription, CardContent,
+} from '@/components/ui/card'
+import {
+  Tabs, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
+import {
+  Progress,
+} from '@/components/ui/progress'
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const MARKET_ASSETS = [
   { code: 'SPX', label: 'S&P 500' },
@@ -62,16 +75,16 @@ export default function MarketPage({ onSelectStock, stocks = [] }) {
           <h1 className="page-head-title">Market Overview</h1>
           <p className="page-head-sub">Ringkasan indeks, breadth, dan rotasi sektor.</p>
         </div>
-        <span className="tag tag-green tag-dot">Live</span>
+        <Badge tone="green" dot>Live</Badge>
       </div>
 
-      <div className="tabstrip">
-        {MARKET_ASSETS.map((a) => (
-          <button key={a.code} className={`tabstrip-tab ${code === a.code ? 'active' : ''}`} onClick={() => setCode(a.code)}>
-            {a.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={code} onValueChange={setCode} className="mb-4">
+        <TabsList className="h-9">
+          {MARKET_ASSETS.map((a) => (
+            <TabsTrigger key={a.code} value={a.code} className="text-[13px]">{a.label}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="stat-grid">
         {stats.map((x) => (
@@ -83,86 +96,126 @@ export default function MarketPage({ onSelectStock, stocks = [] }) {
         ))}
       </div>
 
-      <div className="dash-grid" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 2.5fr) minmax(0, 1fr)', marginBottom: 16 }}>
-        <div className="cg-card">
-          <div className="cg-card-head">
-            <Activity size={16} style={{ color: 'var(--accent)' }} />
-            <div>
-              <div className="cg-card-title">{index?.name || code}</div>
-              <div className="cg-card-sub">60 sesi terakhir</div>
+      <div
+        className="dash-grid mb-4"
+        style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 2.5fr) minmax(0, 1fr)' }}
+      >
+        <Card>
+          <CardHeader className="px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-accent-dim border border-accent-line flex items-center justify-center">
+                <Activity size={15} className="text-accent" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-[14px] font-bold text-foreground">{index?.name || code}</CardTitle>
+                <CardDescription>60 sesi terakhir</CardDescription>
+              </div>
+              <Badge tone={indexPos ? 'green' : 'red'} className="text-[11px] font-mono">
+                {indexLoading ? '…' : `${indexPos ? '+' : ''}${(index?.change ?? 0).toFixed(2)}%`}
+              </Badge>
             </div>
-            <span className={`tag ${indexPos ? 'tag-green' : 'tag-red'}`} style={{ marginLeft: 'auto' }}>
-              {indexLoading ? '…' : `${indexPos ? '+' : ''}${(index?.change ?? 0).toFixed(2)}%`}
-            </span>
-          </div>
-          <div style={{ padding: '10px 16px 16px' }}>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
             {indexHistory.length >= 2 ? (
               <PriceChart rows={indexHistory} height={400} />
             ) : (
-              <div className="empty-state">— memuat data indeks —</div>
+              <div className="py-10 text-center text-sm text-muted-foreground">Memuat data indeks</div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="cg-card">
-          <div className="cg-card-head">
-            <Layers size={15} style={{ color: 'var(--accent)' }} />
-            <div className="cg-card-title">Performa Sektor</div>
-            <span className="cg-card-sub" style={{ marginLeft: 'auto' }}>avg %</span>
-          </div>
-          <div style={{ padding: '6px 16px 14px', maxHeight: 360, overflowY: 'auto' }}>
-            {sectorPerf.length === 0 && <div className="empty-state" style={{ padding: 24 }}>— belum ada data —</div>}
-            {sectorPerf.map((s, i) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-                    <span className="num" style={{ fontSize: 11, color: s.change >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(s.change)}</span>
-                  </div>
-                  <div className="sbar-track" style={{ width: '100%' }}>
-                    <div className="sbar-fill" style={{ width: `${Math.min(100, Math.max(3, 50 + s.change * 12))}%`, background: s.change >= 0 ? 'var(--up)' : 'var(--down)', opacity: 0.75 }} />
-                  </div>
-                </div>
-                <span className="num" style={{ fontSize: 9, color: 'var(--text3)', width: 16, textAlign: 'right' }}>{s.stocks}</span>
+        <Card>
+          <CardHeader className="px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-accent-dim border border-accent-line flex items-center justify-center">
+                <Layers size={15} className="text-accent" />
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex-1">
+                <CardTitle className="text-[14px] font-bold text-foreground">Performa Sektor</CardTitle>
+                <CardDescription>avg %</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5 max-h-[360px] overflow-y-auto">
+            {sectorPerf.length === 0 && (
+              <div className="py-6 text-center text-xs text-muted-foreground">Belum ada data</div>
+            )}
+            <div className="flex flex-col gap-1">
+              {sectorPerf.map((s, i) => (
+                <div
+                  key={s.name}
+                  className="flex items-center gap-2.5 py-2"
+                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between gap-2 mb-1">
+                      <span className="text-[12px] text-foreground font-medium truncate">{s.name}</span>
+                      <span className="font-mono text-[11px]" style={{ color: s.change >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                        {pct(s.change)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={Math.min(100, Math.max(3, 50 + s.change * 12))}
+                      className="h-1.5 rounded-full"
+                    />
+                  </div>
+                  <span className="font-mono text-[9px] text-muted-foreground w-[18px] text-right">{s.stocks}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
         {[
-          { key: 'gainers', label: 'Top Gainers', list: gainers, color: 'var(--up)', icon: TrendingUp },
-          { key: 'losers', label: 'Top Losers', list: losers, color: 'var(--down)', icon: TrendingDown },
+          { key: 'gainers', label: 'Top Gainers', list: gainers, color: 'var(--up)', icon: TrendingUp, tone: 'green' },
+          { key: 'losers', label: 'Top Losers', list: losers, color: 'var(--down)', icon: TrendingDown, tone: 'red' },
         ].map((block) => {
           const Icon = block.icon
           return (
-            <div key={block.key} className="cg-card">
-              <div className="cg-card-head">
-                <Icon size={15} style={{ color: block.color }} />
-                <div className="cg-card-title">{block.label}</div>
-              </div>
-              <div style={{ padding: '4px 12px 10px' }}>
-                {block.list.length === 0 && <div className="empty-state" style={{ padding: 24 }}>— tidak ada —</div>}
-                {block.list.map((s) => (
-                  <div
-                    key={s.ticker}
-                    onClick={() => onSelectStock?.(s)}
-                    className="hoverable"
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 6px', margin: '0 -6px', borderRadius: 8, cursor: 'pointer' }}
-                  >
-                    <Spark data={s.sparkline} up={block.key === 'gainers'} w={40} h={20} />
-                    <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="cell-sym">{s.ticker}</div>
-                      <div className="cell-name">{s.sector}</div>
-                    </div>
-                    <span className="num" style={{ fontSize: 12.5, fontWeight: 600, color: block.color }}>{pct(s.changePct)}</span>
-                    <span className="num" style={{ fontSize: 11, color: 'var(--text2)', minWidth: 66, textAlign: 'right' }}>{fmtPrice(s.price, s.kind)}</span>
+            <Card key={block.key}>
+              <CardHeader className="px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+                    style={{ background: block.key === 'gainers' ? 'var(--up-dim)' : 'var(--down-dim)', border: `1px solid ${block.key === 'gainers' ? 'var(--up-line)' : 'var(--down-line)'}` }}>
+                    <Icon size={15} style={{ color: block.color }} />
                   </div>
-                ))}
-              </div>
-            </div>
+                  <CardTitle className="text-[14px] font-bold text-foreground">{block.label}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="px-3 pb-4">
+                {block.list.length === 0 && (
+                  <div className="py-6 text-center text-xs text-muted-foreground">Tidak ada</div>
+                )}
+                <div className="flex flex-col gap-0.5">
+                  {block.list.map((s) => (
+                    <Tooltip key={s.ticker}>
+                      <TooltipTrigger asChild>
+                        <div
+                          onClick={() => onSelectStock?.(s)}
+                          className="flex items-center gap-2.5 py-2 px-1.5 -mx-1.5 rounded-lg cursor-pointer hover:bg-secondary/40 transition-colors"
+                        >
+                          <Spark data={s.sparkline} up={block.key === 'gainers'} w={40} h={20} />
+                          <StockLogo ticker={s.ticker} name={s.name} logoUrl={s.logoUrl} logoFallback={s.logoFallback} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-bold text-foreground">{s.ticker}</div>
+                            <div className="text-[11px] text-muted-foreground">{s.sector}</div>
+                          </div>
+                          <span className="font-mono text-[12.5px] font-semibold" style={{ color: block.color }}>
+                            {pct(s.changePct)}
+                          </span>
+                          <span className="font-mono text-[11px] text-ink-soft min-w-[66px] text-right">
+                            {fmtPrice(s.price, s.kind)}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Klik untuk lihat detail {s.ticker}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )
         })}
       </div>

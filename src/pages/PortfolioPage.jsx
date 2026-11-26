@@ -1,7 +1,24 @@
 import { useState, useCallback, useEffect } from 'react'
 import { accountApi } from '../api/auth'
 import { PH } from '../components/ui/DashboardComponents'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, TrendingUp, TrendingDown } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import {
+  Card, CardHeader, CardTitle, CardDescription, CardContent,
+} from '@/components/ui/card'
+import {
+  Tabs, TabsList, TabsTrigger,
+} from '@/components/ui/tabs'
 
 const fmt = (n) => {
   if (n == null) return '—'
@@ -43,7 +60,7 @@ export default function PortfolioPage({ stocks, onSelectStock }) {
   const openModal = (holding) => {
     setModal({
       ticker: holding?.ticker || '',
-      side: 'buy',
+      side: holding?.side || 'buy',
       qty: '',
       price: holding?.price ?? '',
       fee: 0,
@@ -64,16 +81,18 @@ export default function PortfolioPage({ stocks, onSelectStock }) {
         trade_date: modal.date,
       })
       setModal(null)
+      toast.success('Transaksi dicatat')
       load()
     } catch (err) {
       setError(err.message)
+      toast.error(err.message || 'Gagal simpan transaksi')
     }
   }
 
   const modalInput = (label, value, onChange, type = 'text') => (
-    <div style={{ marginBottom: 12 }}>
-      <label className="field-label">{label}</label>
-      <input className="input-field" type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   )
 
@@ -85,7 +104,7 @@ export default function PortfolioPage({ stocks, onSelectStock }) {
       <PH eyebrow="Portofolio pribadi · realtime" title="Portofolio Saya" />
 
       {error && (
-        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 9, border: '1px solid var(--down)', background: 'var(--down-dim)', color: 'var(--down)', fontSize: 12 }}>
+        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive text-xs">
           {error}
         </div>
       )}
@@ -104,155 +123,176 @@ export default function PortfolioPage({ stocks, onSelectStock }) {
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2.5">
         <div>
-          <div className="cg-card-title">Posisi Terbuka</div>
-          <div className="cg-card-sub">{holdings.length} aset di portofolio</div>
+          <div className="text-[14px] font-bold text-foreground">Posisi Terbuka</div>
+          <div className="text-xs text-muted-foreground">{holdings.length} aset di portofolio</div>
         </div>
-        <button className="btn btn-primary" onClick={() => openModal(null)}>
+        <Button onClick={() => openModal(null)}>
           <Plus size={15} /> Catat Transaksi
-        </button>
+        </Button>
       </div>
 
-      <div className="table-shell" style={{ marginBottom: 24 }}>
-        <div className="table-scroll" style={{ maxHeight: 'none' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="l" style={{ minWidth: 180 }}>Aset</th>
-                <th>Harga</th>
-                <th>Qty</th>
-                <th>Avg Cost</th>
-                <th>Nilai</th>
-                <th>Unrealized P&amp;L</th>
-                <th style={{ width: 70 }} />
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="mb-6 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4 min-w-[180px] font-mono text-[10px] tracking-wider text-muted-foreground">ASET</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">HARGA</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">QTY</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">AVG COST</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">NILAI</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">UNREALIZED P&L</TableHead>
+                <TableHead className="text-right pr-4 w-[70px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {holdings.map((h) => (
-                <tr key={h.ticker} onClick={() => onSelectStock && onSelectStock({ ticker: h.ticker })}>
-                  <td className="l">
-                    <div className="cell-sym">{h.ticker}</div>
-                    <div className="cell-name">{nameOf(h.ticker)}</div>
-                  </td>
-                  <td className="num t-strong">{fmt(h.price)}</td>
-                  <td className="num t-soft">{Number(h.qty).toLocaleString('id-ID')}</td>
-                  <td className="num t-soft">{fmt(h.avg_cost)}</td>
-                  <td className="num t-strong">{fmt(h.value)}</td>
-                  <td className="num" style={{ color: sig(h.pnl), fontWeight: 600 }}>
+                <TableRow
+                  key={h.ticker}
+                  className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                  onClick={() => onSelectStock && onSelectStock({ ticker: h.ticker })}
+                >
+                  <TableCell className="pl-4">
+                    <div className="text-[13px] font-bold text-foreground">{h.ticker}</div>
+                    <div className="text-[11px] text-muted-foreground">{nameOf(h.ticker)}</div>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[13px] font-semibold text-foreground">{fmt(h.price)}</TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{Number(h.qty).toLocaleString('id-ID')}</TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{fmt(h.avg_cost)}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] font-semibold text-foreground">{fmt(h.value)}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] font-semibold" style={{ color: sig(h.pnl) }}>
                     {h.pnl == null ? '—' : fmt(h.pnl)}
-                    {h.pnl_pct != null && <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ({h.pnl_pct > 0 ? '+' : ''}{h.pnl_pct}%)</span>}
-                  </td>
-                  <td className="c" onClick={(e) => e.stopPropagation()}>
-                    <button className="btn btn-sm" onClick={() => openModal({ ...h, side: 'sell' })}>Jual</button>
-                  </td>
-                </tr>
+                    {h.pnl_pct != null && (
+                      <span className="ml-1 text-[11px] font-normal" style={{ color: 'var(--text3)' }}>
+                        ({h.pnl_pct > 0 ? '+' : ''}{h.pnl_pct}%)
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openModal({ ...h, side: 'sell' })}>
+                      Jual
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
               {!loading && holdings.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: 28 }}>
-                    Belum ada posisi. Klik <b style={{ color: 'var(--accent)' }}>Catat Transaksi</b> untuk mulai.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-7">
+                    Belum ada posisi. Klik <b className="text-accent">Catat Transaksi</b> untuk mulai.
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
+      </Card>
+
+      <div className="mb-2.5">
+        <div className="text-[14px] font-bold text-foreground">Riwayat Transaksi</div>
+        <div className="text-xs text-muted-foreground">{trades.length} transaksi tercatat</div>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div className="cg-card-title">Riwayat Transaksi</div>
-        <div className="cg-card-sub">{trades.length} transaksi tercatat</div>
-      </div>
-
-      <div className="table-shell">
-        <div className="table-scroll" style={{ maxHeight: 'none' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="l">Tanggal</th>
-                <th className="l">Ticker</th>
-                <th className="c">Aksi</th>
-                <th>Qty</th>
-                <th>Harga</th>
-                <th>Fee</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4 font-mono text-[10px] tracking-wider text-muted-foreground">TANGGAL</TableHead>
+                <TableHead className="font-mono text-[10px] tracking-wider text-muted-foreground">TICKER</TableHead>
+                <TableHead className="text-center font-mono text-[10px] tracking-wider text-muted-foreground">AKSI</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">QTY</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">HARGA</TableHead>
+                <TableHead className="text-right font-mono text-[10px] tracking-wider text-muted-foreground">FEE</TableHead>
+                <TableHead className="text-right pr-4 font-mono text-[10px] tracking-wider text-muted-foreground">TOTAL</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {trades.map((t) => (
-                <tr key={t.id}>
-                  <td className="l num t-soft">{(t.trade_date || '').slice(0, 10)}</td>
-                  <td className="l"><span className="cell-sym">{t.ticker}</span></td>
-                  <td className="c">
-                    <span className={`tag ${t.side === 'buy' ? 'tag-green' : 'tag-red'}`}>{String(t.side).toUpperCase()}</span>
-                  </td>
-                  <td className="num t-soft">{Number(t.qty).toLocaleString('id-ID')}</td>
-                  <td className="num t-soft">{fmt(t.price)}</td>
-                  <td className="num t-soft">{fmt(t.fee)}</td>
-                  <td className="num t-strong">{fmt(Number(t.qty) * Number(t.price) + (t.side === 'buy' ? Number(t.fee) : -Number(t.fee)))}</td>
-                </tr>
+                <TableRow key={t.id}>
+                  <TableCell className="pl-4 font-mono text-[12px] text-muted-foreground">
+                    {(t.trade_date || '').slice(0, 10)}
+                  </TableCell>
+                  <TableCell className="font-mono text-[13px] font-semibold text-foreground">{t.ticker}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge tone={t.side === 'buy' ? 'green' : 'red'} className="text-[10px]">
+                      {String(t.side).toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">
+                    {Number(t.qty).toLocaleString('id-ID')}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{fmt(t.price)}</TableCell>
+                  <TableCell className="text-right font-mono text-[12px] text-muted-foreground">{fmt(t.fee)}</TableCell>
+                  <TableCell className="text-right pr-4 font-mono text-[13px] font-semibold text-foreground">
+                    {fmt(Number(t.qty) * Number(t.price) + (t.side === 'buy' ? Number(t.fee) : -Number(t.fee)))}
+                  </TableCell>
+                </TableRow>
               ))}
               {!loading && trades.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', padding: 28 }}>Belum ada transaksi.</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-7">
+                    Belum ada transaksi.
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
-      {modal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 80, padding: 20 }}
-          onClick={() => setModal(null)}
-        >
-          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <div className="cg-card-sub" style={{ marginBottom: 2 }}>Catat transaksi</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{modal.ticker || 'Pilih ticker'}</div>
-              </div>
-              <button className="icon-btn" style={{ marginLeft: 'auto' }} onClick={() => setModal(null)} aria-label="Tutup">
-                <X size={15} />
-              </button>
+      <Dialog open={!!modal} onOpenChange={(o) => !o && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <span className="flex items-center gap-2">
+                {modal?.side === 'buy' ? <TrendingUp size={16} className="text-up" /> : <TrendingDown size={16} className="text-down" />}
+                {modal?.ticker || 'Pilih Ticker'}
+              </span>
+            </DialogTitle>
+            <DialogDescription>Catat transaksi baru ke portofolio</DialogDescription>
+          </DialogHeader>
+
+          <Tabs
+            value={modal?.side}
+            onValueChange={(v) => setModal({ ...modal, side: v })}
+            className="mb-4"
+          >
+            <TabsList className="grid w-full grid-cols-2 h-9">
+              <TabsTrigger value="buy" className={modal?.side === 'buy' ? 'text-up' : ''}>
+                <TrendingUp size={13} /> Beli
+              </TabsTrigger>
+              <TabsTrigger value="sell" className={modal?.side === 'sell' ? 'text-down' : ''}>
+                <TrendingDown size={13} /> Jual
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {error && (
+            <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-destructive text-xs">
+              {error}
             </div>
+          )}
 
-            {error && <div style={{ fontSize: 12, color: 'var(--down)', marginBottom: 10 }}>{error}</div>}
+          <form onSubmit={submitTrade} className="flex flex-col gap-3.5">
+            {modalInput('Ticker', modal.ticker, (v) => setModal({ ...modal, ticker: v.toUpperCase() }))}
+            {modalInput('Qty (unit)', modal.qty, (v) => setModal({ ...modal, qty: v }), 'number')}
+            {modalInput('Harga / unit (USD)', modal.price, (v) => setModal({ ...modal, price: v }), 'number')}
+            {modalInput('Fee', modal.fee, (v) => setModal({ ...modal, fee: v }), 'number')}
+            {modalInput('Tanggal', modal.date, (v) => setModal({ ...modal, date: v }), 'date')}
 
-            <form onSubmit={submitTrade}>
-              <div className="seg" style={{ display: 'flex', marginBottom: 14, width: '100%' }}>
-                {['buy', 'sell'].map((sd) => (
-                  <button
-                    key={sd}
-                    type="button"
-                    className={`seg-item ${modal.side === sd ? 'active' : ''}`}
-                    onClick={() => setModal({ ...modal, side: sd })}
-                    style={{
-                      flex: 1,
-                      height: 30,
-                      color: modal.side === sd ? (sd === 'buy' ? 'var(--up)' : 'var(--down)') : 'var(--text2)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {sd === 'buy' ? 'Beli' : 'Jual'}
-                  </button>
-                ))}
-              </div>
-              {modalInput('Ticker', modal.ticker, (v) => setModal({ ...modal, ticker: v.toUpperCase() }))}
-              {modalInput('Qty (unit)', modal.qty, (v) => setModal({ ...modal, qty: v }), 'number')}
-              {modalInput('Harga / unit (USD)', modal.price, (v) => setModal({ ...modal, price: v }), 'number')}
-              {modalInput('Fee', modal.fee, (v) => setModal({ ...modal, fee: v }), 'number')}
-              {modalInput('Tanggal', modal.date, (v) => setModal({ ...modal, date: v }), 'date')}
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button type="submit" className="btn btn-primary btn-block">Simpan</button>
-                <button type="button" className="btn btn-block" onClick={() => setModal(null)}>Batal</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModal(null)}>
+                Batal
+              </Button>
+              <Button type="submit">
+                Simpan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

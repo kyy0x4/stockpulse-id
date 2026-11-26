@@ -1,9 +1,20 @@
 import { motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
+import { ChevronRight, FileText, Scroll, BookOpen, ShieldAlert, Mail } from 'lucide-react'
+import {
+  Card, CardHeader, CardTitle, CardContent,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion'
 
 const CONTENT = {
   'about': {
+    icon: FileText,
     title: 'About MARKETIQ',
+    badge: 'PROFIL',
     sections: [
       {
         heading: 'Siapa Kami',
@@ -11,7 +22,7 @@ const CONTENT = {
       },
       {
         heading: 'Apa Yang Kami Layani',
-        body: 'Screener 88+ aset, detail fundamental dan teknikal per aset, chartTradingView real-time, berita market & makro, watchlist, dan portofolio tracking. Data harga saham AS & ETF berasal dari Yahoo Finance; data kripto spot dari Binance dan CoinGecko — diperbarui berkala di backend kami.'
+        body: 'Screener 88+ aset, detail fundamental dan teknikal per aset, chart TradingView real-time, berita market & makro, watchlist, dan portofolio tracking. Data harga saham AS & ETF berasal dari Yahoo Finance; data kripto spot dari Binance dan CoinGecko — diperbarui berkala di backend kami.'
       },
       {
         heading: 'Prinsip Kami',
@@ -24,7 +35,9 @@ const CONTENT = {
     ]
   },
   'contact': {
+    icon: Mail,
     title: 'Hubungi Kami',
+    badge: 'DUKUNGAN',
     sections: [
       {
         heading: 'Pusat Bantuan',
@@ -41,7 +54,9 @@ const CONTENT = {
     ]
   },
   'disclaimer': {
+    icon: ShieldAlert,
     title: 'Pernyataan Tanggung Jawab',
+    badge: 'LEGAL',
     sections: [
       {
         heading: 'Bukan Nasihat Keuangan',
@@ -49,7 +64,7 @@ const CONTENT = {
       },
       {
         heading: 'Risiko Pasar',
-        body: 'Saham, ETF, dan kripto memiliki risiko tinggi. Harga dapat berfluktuasi tajam; nilaimata uang kripto lebih volatil. Jangan berinvestasi lebih dari yang siap Anda kehilangan. Selalu lakukan riset mandiri (DYOR) sebelum mengambil keputusan.'
+        body: 'Saham, ETF, dan kripto memiliki risiko tinggi. Harga dapat berfluktuasi tajam; nilai mata uang kripto lebih volatil. Jangan berinvestasi lebih dari yang siap Anda kehilangan. Selalu lakukan riset mandiri (DYOR) sebelum mengambil keputusan.'
       },
       {
         heading: 'Akurasi Data',
@@ -62,7 +77,9 @@ const CONTENT = {
     ]
   },
   'terms': {
+    icon: Scroll,
     title: 'Ketentuan Penggunaan',
+    badge: 'LEGAL',
     sections: [
       {
         heading: '1. Penerimaan',
@@ -91,7 +108,9 @@ const CONTENT = {
     ]
   },
   'privacy': {
+    icon: BookOpen,
     title: 'Kebijakan Privasi',
+    badge: 'LEGAL',
     sections: [
       {
         heading: 'Data yang Kami Kumpulkan',
@@ -120,45 +139,63 @@ const CONTENT = {
 export default function StaticPage({ slug }) {
   const page = CONTENT[slug] || CONTENT.disclaimer
   const { pathname } = useLocation()
+  const Icon = page.icon
 
   return (
-    <div className="page-wrap" style={{ paddingTop: 8 }}>
+    <div className="page-wrap pt-2">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="cg-card"
-        style={{ maxWidth: 880, margin: '0 auto', padding: 28 }}
+        className="max-w-[880px] mx-auto"
       >
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, marginBottom: 6 }}>{page.title}</h1>
-        <p style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginBottom: 20 }}>
-          Diperbarui: Nov 2026 · MARKETIQ Legal
-        </p>
+        <Card>
+          <CardHeader className="px-6 pt-6">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-lg bg-accent-dim border border-accent-line flex items-center justify-center">
+                <Icon size={18} className="text-accent" />
+              </div>
+              <div>
+                <CardTitle className="font-display text-[24px] font-extrabold text-foreground">
+                  {page.title}
+                </CardTitle>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant="outline" className="text-[9px] font-mono tracking-[0.1em]">
+                    {page.badge}
+                  </Badge>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Diperbarui: Nov 2026 · MARKETIQ Legal
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
 
-        {page.sections.map((s, i) => (
-          <div key={i} style={{ marginBottom: i === page.sections.length - 1 ? 0 : 22 }}>
-            <h2 style={{
-              fontSize: 15, fontWeight: 700, color: 'var(--accent)', marginBottom: 8,
-              display: 'flex', alignItems: 'center', gap: 8
-            }}>
-              <span style={{
-                height: 6, width: 6, borderRadius: 3, background: 'var(--accent)',
-                boxShadow: '0 0 10px var(--accent-dim)'
-              }} />
-              {s.heading}
-            </h2>
-            <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--text2)' }}>{s.body}</p>
-          </div>
-        ))}
+          <CardContent className="px-6 pb-6">
+            <Accordion type="multiple" defaultValue={page.sections.map((_, i) => `item-${i}`)} className="flex flex-col gap-1">
+              {page.sections.map((s, i) => (
+                <AccordionItem key={i} value={`item-${i}`}>
+                  <AccordionTrigger className="text-[13px] font-semibold text-foreground hover:text-accent">
+                    <span className="flex items-center gap-2.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      {s.heading}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[13.5px] leading-[1.65] text-ink-soft mt-2.5">
+                    {s.body}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
 
-        <div style={{
-          marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--border)',
-          fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)',
-          display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10
-        }}>
-          <span>© 2026 MARKETIQ · All rights reserved.</span>
-          <span>{pathname.replace(/^\//, '').replace(/-/g, ' ').toUpperCase()}</span>
-        </div>
+            <Separator className="my-5" />
+
+            <div className="text-[11px] text-muted-foreground font-mono flex justify-between flex-wrap gap-2.5">
+              <span>© 2026 MARKETIQ · All rights reserved.</span>
+              <span>{pathname.replace(/^\//, '').replace(/-/g, ' ').toUpperCase()}</span>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   )
