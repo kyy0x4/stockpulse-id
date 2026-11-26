@@ -134,7 +134,7 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
           })}
 
           <DropdownMenu>
-            <DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
               <button
                 className={`topnav-link ${MORE_NAV.some((m) => m.id === page) ? 'active' : ''}`}
               >
@@ -263,7 +263,7 @@ export default function TopNav({ page, onNavigate, query, onSearch, theme, toggl
 
           {user && (
             <DropdownMenu>
-              <DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild>
                 <button
                   title={user.email}
                   className="flex items-center gap-2 h-[34px] px-2 pr-3 rounded-lg border bg-secondary text-foreground text-xs font-medium cursor-pointer"
